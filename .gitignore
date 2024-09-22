@@ -1,0 +1,16 @@
+.idea/
+__pacache__/
+venv/
+logs/
+*.pyc
+*.log
+*.ini
+*.bkp
+*.txt
+*.env
+*.pyc
+auto_alembic.py
+run.sh
+settings.py
+test_script.py
+lr_db_connect.py

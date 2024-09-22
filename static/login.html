@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="registration-cssave">
+    <form onsubmit="login(event)">
+        <h3 class="text-center">Вход в аккаунт</h3>
+        <div class="form-group">
+            <input class="form-control item" type="text" name="username" maxlength="45" minlength="4"
+                   pattern="^[a-zA-Z0-9_.-]*$" id="username" placeholder="Логин" required>
+        </div>
+        <div class="form-group">
+            <input class="form-control item" type="password" name="password" id="password"
+                   placeholder="Пароль" required>
+        </div>
+        <div class="register-link">
+            <a href="{{ url_for('register') }}">Нет аккаунта? Зарегистрироваться</a>
+        </div>
+        <div class="form-group">
+            <button class="btn btn-primary btn-block create-account" type="submit">Вход в аккаунт</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    async function login(event) {
+        event.preventDefault(); // Предотвращаем стандартную отправку формы
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('/auth/jwt/login', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                window.location.href = "{{ url_for('show_main_page') }}";
+            } else if (response.status === 400) {
+                const errorData = await response.json();
+                console.error('Error 400:', errorData.detail);
+                alert('Неверный логин или пароль');
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.detail);
+                alert('Error: ' + errorData.detail);
+            }
+        } catch (error) {
+            console.error('Error during login:', error);
+            alert('An error occurred during login. Please try again.');
+        }
+    }
+</script>
+
+<style>
+    .registration-cssave {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        margin: auto;
+        margin-top: 50px;
+    }
+    .registration-cssave h3 {
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0 20px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    .btn {
+        width: 100%;
+        background-color: #007bff;
+        color: white;
+        padding: 14px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .btn:hover {
+        background-color: #0056b3;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .register-link {
+        display: block;
+        text-align: center;
+        margin-top: 10px;
+        color: #007bff;
+        text-decoration: none;
+    }
+    .register-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

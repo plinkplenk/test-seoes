@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+    .container {
+        margin: 0 auto;
+        width: 80%;
+        max-width: 800px;
+    }
+    .header {
+        margin-top: 20px;
+    }
+    .header h1 {
+        color: #007bff;
+    }
+    .services, .add-config, .new-block {
+        display: inline-block;
+        vertical-align: top;
+        width: 30%;
+        margin: 20px 0;
+    }
+    .services, .new-block {
+        text-align: center;
+    }
+    .add-config {
+        text-align: left;
+    }
+    .services h2, .add-config h2, .new-block h2 {
+        color: #007bff;
+    }
+    .buttons {
+        margin-top: 20px;
+    }
+    .buttons a, .buttons button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 200px; /* Одинаковый размер кнопок */
+        text-decoration: none;
+        text-align: center;
+    }
+    .buttons a:hover, .buttons button:hover {
+        background-color: #0056b3;
+    }
+    .form {
+        margin-top: 20px;
+    }
+    .form input, .form button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px;
+        width: 80%;
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+    }
+    .form button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+    }
+    .form button:hover {
+        background-color: #0056b3;
+    }
+    .add-config {
+        margin-left: 50px; /* Увеличенное расстояние между блоками */
+    }
+    .add-config h2 {
+        margin-left: 60px; /* Подвинуть надпись "add config" немного вправо */
+    }
+
+    .loader {
+      position: fixed;
+      z-index: 9999;
+      top: 10%;
+      left: 40%;
+      transform: translate(-50%, -50%);
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 50px;
+      height: 50px;
+      -webkit-animation: spin 2s linear infinite; /* Safari */
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+<div class="container">
+    <div class="header">
+        <h1>{{ user.username }}</h1>
+    </div>
+    <div class="new-block">
+        <h2>tables</h2>
+        <div class="buttons">
+            <a href="{{ url_for('get_queries') }}">Query Table</a>
+            <a href="{{ url_for('get_urls') }}">Url Table</a>
+            <a href="{{ url_for('get_history') }}">All history Table</a>
+            <a href="{{ url_for('show_menu_merge_page') }}">Query & Url Merge Table</a>
+        </div>
+    </div>
+    <div class="services">
+        <h2>services</h2>
+        <div class="buttons">
+            <button onclick="sendRequest('{{ url_for('load_queries_script') }}')">Load All Queries</button>
+            <button onclick="sendRequest('{{ url_for('load_urls_script') }}')">Load All URLs</button>
+            <button onclick="sendRequest('{{ url_for('load_history_script') }}')">Load All History</button>
+            <button onclick="sendRequest('{{ url_for('load_merge_script') }}')">Load Query URL Merge</button>
+        </div>
+    </div>
+</div>
+<div class="loader" style="display: none;"></div>
+<script>
+    function sendRequest(url) {
+        $('.loader').show();
+        fetch(url)
+            .then(response => {
+                if (response.status === 403) {
+                    throw new Error('403 Forbidden');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // Обработка успешного ответа
+                $('.loader').hide();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                if (error.message === '403 Forbidden') {
+                    alert('Error: You do not have permission to perform this action.');
+                }
+                // Обработка ошибки
+                $('.loader').hide();
+            });
+    }
+</script>
+{% endblock %}

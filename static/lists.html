@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+    .container {
+        width: 100%;
+        max-width: 800px; /* Увеличена максимальная ширина для нового блока */
+        margin: 0 auto;
+        margin-top: 30px;
+    }
+    .row {
+        display: flex;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+    .header {
+        font-weight: bold;
+    }
+    .cell {
+        flex: 1;
+        padding: 5px;
+    }
+    .add-list-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .add-list-container h2 {
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+    .add-list-form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .add-list-form input, .add-list-form textarea, .add-list-form button {
+        margin: 5px 0;
+        padding: 10px;
+        width: 90%; /* Ширина элементов формы */
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+    }
+    .add-list-form button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+    }
+    .add-list-form button:hover {
+        background-color: #0056b3;
+    }
+    .loader {
+        position: fixed;
+        z-index: 9999;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="container">
+    <!-- Новый блок для добавления списка -->
+    <div class="add-list-container">
+        <h2>Add New List</h2>
+        <form class="add-list-form" id="add-list-form">
+            <input type="text" id="list-name" placeholder="List Name" required>
+            <input type="text" id="group-name" placeholder="Group Name" required>
+            <input type="text" id="config-name" placeholder="Config Name" required>
+            <textarea id="list-content" placeholder="Enter URLs here (one per line)" rows="6" required></textarea>
+            <div class="checkbox-container">
+                <input type="checkbox" id="make-public">
+                <label for="make-public">Make list public?</label>
+            </div>
+            <button type="button" onclick="addList()">Add List</button>
+        </form>
+    </div>
+
+    <!-- Таблица списков -->
+    <div class="row header">
+        <div class="cell">Номер</div>
+        <div class="cell">Название списка URL</div>
+        <div class="cell">Автор</div>
+        <div class="cell">Group</div>
+        <div class="cell">Config</div>
+        <div class="cell">Public</div>
+        <div class="cell">Действие</div>
+    </div>
+    {% for name in list_names %}
+    <div class="row">
+        <div class="cell">{{ loop.index }}</div>
+        <div class="cell">
+            <a href="{{ url_for('get_urls').include_query_params(list_name = name.name) }}">{{ name.name }}</a>
+        </div>
+        <div class="cell">{{ name_dict[name.author] }}</div>
+        <div class="cell">{{ group_dict[name.group] }}</div>
+        <div class="cell">{{ config_dict[name.config] }}</div>
+        <div class="cell">
+            <input type="checkbox" id="public-{{ loop.index }}"
+                   {% if name.is_public %}checked{% endif %}
+                   onchange="togglePublic('{{ name.name }}', this.checked)">
+        </div>
+        <div class="cell">
+            <button type="button" onclick="editList('{{ url_for('show_edit_list', list_id=name.id) }}')">Edit</button>
+            <button type="button" onclick="deleteList('{{ name.name }}')">Удалить</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="loader" style="display: none;"></div>
+
+<script>
+    function addList() {
+        const groupName = $('#group-name').val();
+        const configName = $('#config-name').val();
+        const listName = $('#list-name').val();
+        const content = $('#list-content').val();
+        const isPublic = $('#make-public').is(':checked');
+
+        if (groupName && configName && listName && content) {
+            $('.loader').show();
+
+            const data = {
+                group_name: groupName,
+                config_name: configName,
+                name: listName,
+                uri_list: content.split('\n').filter(uri => uri.trim() !== ''), // Преобразуем содержание в список URI
+                is_public: isPublic
+            };
+
+            fetch('{{ url_for('add_list') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('List added:', data);
+                $('.loader').hide();
+                $('#add-list-form')[0].reset();
+                window.location.reload();  // Обновление страницы
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                $('.loader').hide();
+                alert(`Error: ${error.error || 'Unable to add list.'}`);
+            });
+        } else {
+            alert('Please fill in all fields.');
+        }
+    }
+
+    function deleteList(listName) {
+        if (listName) {
+            $('.loader').show();
+
+            fetch('{{ url_for('delete_list') }}', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: listName })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('List deleted:', data);
+                $('.loader').hide();
+                window.location.reload();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                $('.loader').hide();
+                alert(`Error: ${error.error || 'Unable to delete list.'}`);
+            });
+        } else {
+            alert('Please enter a list name.');
+        }
+    }
+
+    function togglePublic(listName, isPublic) {
+        $('.loader').show();
+
+        const data = {
+            name: listName,
+            is_public: isPublic
+        };
+
+        fetch('{{ url_for('change_list_visibility') }}', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Visibility updated:', data);
+            $('.loader').hide();
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            $('.loader').hide();
+            alert(`Error: ${error.error || 'Unable to update visibility.'}`);
+        });
+    }
+
+    function editList(url) {
+    // Редирект пользователя на страницу редактирования
+    window.location.href = url;
+    }
+</script>
+{% endblock %}

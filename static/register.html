@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="registration-cssave">
+    <form onsubmit="register(event)">
+        <h3 class="text-center">Регистрация</h3>
+        <div class="form-group">
+            <input class="form-control item" type="email" name="email" maxlength="320" minlength="5"
+                pattern="^[a-zA-Z0-9_.\-]+@[a-zA-Z0-9_.\-]+\.[a-zA-Z]{2,}$" id="email" placeholder="Email" required>
+        </div>
+        <div class="form-group">
+            <input class="form-control item" type="password" name="password" id="password" placeholder="Пароль"
+                required>
+        </div>
+        <div class="form-group">
+            <button class="btn btn-primary btn-block create-account" type="submit">Регистрация</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    async function register(event) {
+        event.preventDefault(); // Предотвращаем стандартную отправку формы
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        const data = {
+            email: formData.get('email'), // Получаем email из формы
+            password: formData.get('password'),
+            is_active: true,
+            is_superuser: false,
+            is_verified: false,
+            id: 0
+        };
+
+        try {
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            });
+
+            console.log(response);
+            if (response.ok) {
+                window.location.href = '/admin';
+            } else {
+                const errorData = await response.json();
+                console.error('Error:', errorData.detail);
+                alert('Error: ' + errorData.detail);
+            }
+        } catch (error) {
+            console.error('Error during register:', error);
+            alert('An error occurred during register. Please try again.');
+        }
+    }
+</script>
+
+<style>
+    .registration-cssave {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        margin: auto;
+        margin-top: 50px;
+    }
+
+    .registration-cssave h3 {
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0 20px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+
+    .btn {
+        width: 100%;
+        background-color: #007bff;
+        color: white;
+        padding: 14px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .register-link {
+        display: block;
+        text-align: center;
+        margin-top: 10px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .register-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}

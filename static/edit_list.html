@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block content %}
+<title>Список URL</title>
+<style>
+    .container {
+        width: 100%;
+        max-width: 800px;
+        margin: 20px auto;
+        border-collapse: collapse;
+    }
+    .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+    .header {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+    .cell {
+        flex: 1;
+        padding: 10px;
+    }
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
+    button {
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+    .btn-delete {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+    }
+    .btn-edit {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+    }
+    .btn-add {
+        background-color: #4caf50; /* Green background for the plus icon button */
+        color: white;
+        border: none;
+        padding: 10px;
+        margin: 10px 0;
+        width: 40px; /* Adjust button width to make it square */
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    button:hover {
+        opacity: 0.8;
+    }
+    .input-url {
+        padding: 5px;
+        margin-right: 10px;
+        flex: 1;
+        width: 200px; /* Make input field smaller */
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form to add a new URI -->
+        <div class="row">
+            <input type="text" id="newUriInput" class="input-url" placeholder="Введите новый URL" />
+            <button class="btn-add" onclick="addUri('{{ url_for('add_uri', list_id=list_id) }}')">+</button>
+        </div>
+
+        <div class="row header">
+            <div class="cell">Пп</div>
+            <div class="cell">URL</div>
+            <div class="cell">Управление</div>
+        </div>
+        {% for uri in uri_list %}
+        <div class="row">
+            <div class="cell">{{ loop.index }}</div> <!-- Порядковый номер -->
+            <div class="cell">{{ uri }}</div>
+            <div class="cell button-group">
+                <!-- Updated delete button -->
+                <button class="btn-delete" onclick="deleteRecord('{{ url_for('delete_list_record', list_id=list_id) }}', this, '{{ uri }}')">X</button>
+                <button class="btn-edit" onclick="editRow('{{ url_for('change_list_record', list_id=list_id) }}', this)">🖉</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function deleteRow(button) {
+            const row = button.closest('.row');
+            row.remove();
+        }
+
+        async function deleteRecord(url, button, uri) {
+            if (confirm('Вы уверены, что хотите удалить эту запись?')) {
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ uri: uri })
+                });
+
+                if (response.ok) {
+                    // Remove row from table
+                    deleteRow(button);
+                } else {
+                    alert('Ошибка при удалении записи.');
+                }
+            }
+        }
+
+        async function editRow(url, button) {
+            const row = button.closest('.row');
+            const urlCell = row.querySelector('.cell:nth-child(2)');
+            const currentUrl = urlCell.textContent;
+            const newUrl = prompt('Редактировать URL:', currentUrl);
+            
+            if (newUrl !== null && newUrl !== currentUrl) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ old_uri: currentUrl, new_uri: newUrl })
+                    });
+
+                    if (response.ok) {
+                        // Update the displayed URL in the table
+                        urlCell.textContent = newUrl;
+                    } else {
+                        alert('Ошибка при обновлении записи.');
+                    }
+                } catch (error) {
+                    console.error('Ошибка сети:', error);
+                    alert('Ошибка сети.');
+                }
+            }
+        }
+
+        async function addUri(url) {
+            const newUriInput = document.getElementById('newUriInput');
+            const newUri = newUriInput.value.trim();
+            
+            if (newUri) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ uri: newUri })
+                    });
+
+                    if (response.ok) {
+                        // Clear input field
+                        newUriInput.value = '';
+
+                        // Add new row to the table
+                        const container = document.querySelector('.container');
+                        const headerRow = container.querySelector('.header');
+                        
+                        const newRow = document.createElement('div');
+                        newRow.classList.add('row');
+                        newRow.innerHTML = `
+                            <div class="cell">${container.querySelectorAll('.row').length}</div>
+                            <div class="cell">${newUri}</div>
+                            <div class="cell button-group">
+                                <button class="btn-delete" onclick="deleteRecord('${url}', this, '${newUri}')">X</button>
+                                <button class="btn-edit" onclick="editRow('${url}', this)">🖉</button>
+                            </div>
+                        `;
+
+                        // Insert the new row after the header
+                        container.insertBefore(newRow, headerRow.nextSibling);
+
+                    } else {
+                        alert('Ошибка при добавлении URL.');
+                    }
+                } catch (error) {
+                    console.error('Ошибка сети:', error);
+                    alert('Ошибка сети.');
+                }
+            } else {
+                alert('Введите корректный URL.');
+            }
+        }
+    </script>
+</body>
+</html>
+{% endblock %}

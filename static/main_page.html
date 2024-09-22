@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-page">
+    <h1 class="main-title">Main Page</h1>
+</div>
+
+<style>
+    .main-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+        background-color: #f4f4f4;
+        text-align: center;
+    }
+    .main-title {
+        font-size: 3em;
+        color: #333;
+        margin: 0;
+    }
+</style>
+
+<script>
+    // Проверка, включены ли куки
+    if (navigator.cookieEnabled) {
+        console.log("Cookies are enabled.");
+    } else {
+        console.log("Cookies are disabled.");
+    }
+</script>
+{% endblock %}

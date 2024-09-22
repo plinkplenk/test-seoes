@@ -1,0 +1,121 @@
+   /* CSS стили для DataTables */
+table.dataTable {
+border-collapse: collapse;
+border-spacing: 0;
+width: 100%;
+overflow-x: auto;
+}
+
+table.dataTable thead th {
+border: 1px solid #ddd;
+/*padding: 8px;*/
+text-align: left;
+}
+
+table.dataTable tfoot th {
+border: 1px solid #ddd;
+/*padding: 8px;*/
+text-align: left;
+}
+
+table.dataTable tbody td {
+border: 1px solid #ddd;
+/*padding: 8px;*/
+}
+
+table.dataTable tbody tr:hover {
+background-color: #f5f5f5;
+}
+
+.loader {
+position: fixed;
+z-index: 9999;
+top: 5%;
+left: 50%;
+transform: translate(-50%, -50%);
+border: 4px solid #f3f3f3;
+border-radius: 50%;
+border-top: 4px solid #3498db;
+width: 50px;
+height: 50px;
+-webkit-animation: spin 2s linear infinite; /* Safari */
+animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+.back-to-menu {
+display: inline-block;
+padding: 10px 20px;
+border-radius: 5px;
+background-color: #333;
+color: #fff;
+text-decoration: none;
+transition: background-color 0.3s ease;
+}
+
+.back-to-menu:hover {
+background-color: #555;
+}
+
+td + td {
+border-left: 3px solid #000;
+}
+
+tr + tr td {
+border-top: 3px solid #000;
+
+div {
+border-bottom: 1px solid #000;
+}
+
+.back-to-menu {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.back-to-menu:hover {
+    background-color: #555;
+}
+
+.button-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.button-container input[type="button"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button-container input[type="button"]:hover {
+    background-color: #0056b3;
+}
+
+.button-container input[type="number"] {
+    width: 80px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.button-container label {
+    margin-right: 5px;
+    color: #000; /* Черный цвет для надписи Last Update Date */
+}

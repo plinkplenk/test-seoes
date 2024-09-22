@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+    .container {
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        margin-top: 30px;
+    }
+    .row {
+        display: flex;
+        padding: 10px 0;
+        border-bottom: 1px solid #ddd;
+    }
+    .header {
+        font-weight: bold;
+    }
+    .cell {
+        flex: 1;
+        padding: 5px;
+    }
+    .add-list-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .add-list-container h2 {
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+    .add-list-form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .add-list-form input, .add-list-form textarea, .add-list-form button, .add-list-form select {
+        margin: 5px 0;
+        padding: 10px;
+        width: 90%;
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+    }
+    .add-list-form button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+    }
+    .add-list-form button:hover {
+        background-color: #0056b3;
+    }
+    .loader {
+        position: fixed;
+        z-index: 9999;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="container">
+    <!-- New block for adding a list -->
+    <div class="add-list-container">
+        <h2>Add New Live Search List</h2>
+        <form class="add-list-form" id="add-list-form">
+            <input type="text" id="list-name" placeholder="List Name" required>
+            <input type="text" id="main-domain" placeholder="MAIN DOMAIN" required>
+
+            <textarea id="list-content" placeholder="Enter Queries here (one per line)" rows="6" required></textarea>
+            <button type="button" onclick="addList()">Add Live Search List</button>
+        </form>
+    </div>
+
+    <!-- List table -->
+    <div class="row header">
+        <div class="cell">Number</div>
+        <div class="cell">List Name</div>
+        <div class="cell">Main Domain</div>
+        <div class="cell">Action</div>
+    </div>
+    {% for name in list_names %}
+    <div class="row">
+        <div class="cell">{{ loop.index }}</div>
+        <div class="cell">
+            <a href="{{ url_for('show_list_menu').include_query_params(list_id=name.id, author=name.author) }}">{{ name.name }}</a>
+        </div>
+        <div class="cell">{{ name.main_domain }}</div>
+        <div class="cell">
+            <button type="button" onclick="editList('{{ url_for('show_edit_live_search', list_id=name.id) }}')">Edit</button>
+            <button type="button" onclick="deleteList('{{ name.name }}')">Delete</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="loader" style="display: none;"></div>
+
+<script>
+    function addList() {
+        const mainDomain = $('#main-domain').val();
+        const listName = $('#list-name').val();
+        const content = $('#list-content').val();
+
+        if (mainDomain && listName && content) {
+            $('.loader').show();
+
+            const data = {
+                main_domain: mainDomain,
+                name: listName,
+                query_list: content.split('\n').filter(uri => uri.trim() !== ''),
+            };
+
+            fetch('{{ url_for('add_live_search_list') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('List added:', data);
+                $('.loader').hide();
+                $('#add-list-form')[0].reset();
+                window.location.reload();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                $('.loader').hide();
+                alert(`Error: ${error.error || 'Unable to add list.'}`);
+            });
+        } else {
+            alert('Please fill in all fields.');
+        }
+    }
+
+    // Other functions remain unchanged...
+
+    function deleteList(listName) {
+        if (listName) {
+            $('.loader').show();
+
+            fetch('{{ url_for('delete_live_search_list') }}', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: listName })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('List deleted:', data);
+                $('.loader').hide();
+                window.location.reload();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                $('.loader').hide();
+                alert(`Error: ${error.error || 'Unable to delete list.'}`);
+            });
+        } else {
+            alert('Please enter a list name.');
+        }
+    }
+
+    function editList(url) {
+        window.location.href = url;
+    }
+
+    function UpdateList(list) {
+        if (list) {
+            $('.loader').show();
+
+            fetch('{{ url_for('load_live_search_list') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ list: list })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('List load:', data);
+                $('.loader').hide();
+                window.location.reload();
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                $('.loader').hide();
+                alert(`Error: ${error.error || 'Unable to load list.'}`);
+            });
+        } else {
+            alert('Error');
+        }
+    }
+
+</script>
+{% endblock %}

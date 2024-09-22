@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Региональная таблица</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 600px;
+            max-width: 100%;
+        }
+        .block {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        .table th, .table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .add-button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .add-button:hover {
+            background-color: #218838;
+        }
+        .remove-button {
+            width: 20px;  /* Set width and height to create a square */
+            height: 20px;
+            display: inline-block;
+            background-color: #dc3545; /* Red background */
+            color: white;  /* White text for the cross */
+            text-align: center;
+            line-height: 20px;  /* Align the text vertically */
+            border-radius: 3px;  /* Slight rounding for a softer look */
+            cursor: pointer;
+            font-weight: bold;  /* Make the cross bold */
+            font-size: 16px;  /* Adjust font size */
+        }
+
+        .remove-button:hover {
+            background-color: #c82333;  /* Darker red on hover */
+            text-decoration: none;  /* Remove underline if any */
+        }
+        .update-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .update-button:hover {
+            background-color: #0056b3;
+        }
+        .new-entry {
+            display: none;
+            margin-top: 10px;
+            position: relative;
+        }
+        .new-entry input {
+            width: calc(100% - 45px);
+            padding: 8px;
+            margin-right: 10px;
+            position: relative;
+        }
+        .new-entry button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .new-entry button:hover {
+            background-color: #218838;
+        }
+        .autocomplete-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .autocomplete-item:hover {
+            background-color: #f0f0f0;
+        }
+        .list-name {
+            margin-bottom: 20px;
+            font-size: 36px;  /* Увеличиваем размер шрифта */
+            font-weight: bold;
+            text-align: center;
+            color: #333;  /* Добавляем цвет для улучшения контраста */
+        }
+        .loader {
+        position: fixed;
+        z-index: 9999;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<div class="content">
+    <div class="container">
+        <!-- Название списка -->
+        <div class="list-name">{{ list_name }}</div>
+
+        <!-- Яндекс блок -->
+        <div class="block">
+            <h2>Yandex</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Регион</th>
+                        <th>Удалить</th>
+                        <th>Обновить</th>
+                    </tr>
+                </thead>
+                <tbody id="yandex-table-body">
+                    {% for region in yandex_list %}
+                    <tr> 
+                        <td>
+                        <a href="{{ url_for('get_live_search').include_query_params(list_id=region.list_id, search_system=region.search_system, lr_id=region.id) }}">
+                            {{ region_dict[region.lr] }}
+                        </td>
+                        </a>
+                        <td>
+                            <span class="remove-button" onclick="removeRegion('{{ region.list_id }}', '{{ region.lr }}', '{{ region.search_system }}')">×</span>
+                        </td>
+                        <td>
+                            <button class="update-button" onclick="UpdateList('{{ region.id }}')">Update</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button class="add-button" onclick="toggleNewEntryForm('yandex')">Добавить регион</button>
+            <div class="new-entry" id="yandex-new-entry">
+                <input type="text" id="yandex-region-input" placeholder="Введите регион" oninput="showSuggestions('yandex')">
+                <button onclick="addRegion('yandex')">Добавить</button>
+                <div id="yandex-suggestions" class="autocomplete-container"></div>
+            </div>
+        </div>
+
+        <!-- Google блок -->
+        <div class="block">
+            <h2>Google</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Регион</th>
+                        <th>Удалить</th>
+                        <th>Обновить</th>
+                    </tr>
+                </thead>
+                <tbody id="google-table-body">
+                    {% for region in google_list %}
+                    <tr>
+                        <td>
+                        <a href="{{ url_for('get_live_search').include_query_params(list_id=region.list_id, search_system=region.search_system, lr_id=region.id) }}">
+                            {{ region_dict[region.lr] }}
+                        </td>
+                        <td>
+                            <span class="remove-button" onclick="removeRegion('{{ region.list_id }}', '{{ region.lr }}', '{{ region.search_system }}')">×</span>
+                        </td>
+                        <td>
+                            <button class="update-button" onclick="UpdateList('{{ region.id }}')">Update</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button class="add-button" onclick="toggleNewEntryForm('google')">Добавить регион</button>
+            <div class="new-entry" id="google-new-entry">
+                <input type="text" id="google-region-input" placeholder="Введите регион" oninput="showSuggestions('google')">
+                <button onclick="addRegion('google')">Добавить</button>
+                <div id="google-suggestions" class="autocomplete-container"></div>
+            </div>
+        </div>
+    </div>
+    <div class="loader" style="display: none;"></div>
+    <script>
+        function showSuggestions(block) {
+            const inputId = block + '-region-input';
+            const suggestionsId = block + '-suggestions';
+            const input = document.getElementById(inputId);
+            const suggestionsContainer = document.getElementById(suggestionsId);
+            const query = input.value.toLowerCase();
+
+            suggestionsContainer.innerHTML = ''; // Очищаем контейнер с подсказками
+
+            let filteredRegions;
+
+            // Если поле ввода пустое, показываем все регионы
+            if (query.length === 0) {
+                filteredRegions = Object.keys(regionCodes);
+            } else {
+                // Фильтруем регионы, если есть введенный текст
+                filteredRegions = Object.keys(regionCodes).filter(region =>
+                    region.toLowerCase().includes(query)
+                );
+            }
+
+            filteredRegions.slice(0, 10).forEach(region => { // Ограничиваем количество подсказок до 10
+                const div = document.createElement('div');
+                div.textContent = region;
+                div.className = 'autocomplete-item';
+                div.onclick = function() {
+                    input.value = region;
+                    suggestionsContainer.innerHTML = ''; // Очищаем подсказки после выбора
+                };
+                suggestionsContainer.appendChild(div);
+            });
+
+            // Позиционирование контейнера с подсказками
+            const rect = input.getBoundingClientRect();
+            suggestionsContainer.style.top = `${rect.height}px`; // Сдвигаем подсказки вниз относительно поля ввода
+        }
+
+        function toggleNewEntryForm(block) {
+            const formId = block + '-new-entry';
+            const form = document.getElementById(formId);
+            form.style.display = form.style.display === 'none' || form.style.display === '' ? 'block' : 'none';
+
+            if (form.style.display === 'block') {
+                const inputId = block + '-region-input';
+                const input = document.getElementById(inputId);
+                input.focus();
+            }
+        }
+
+        function addRegion(block) {
+            const tableBodyId = block + '-table-body';
+            const inputId = block + '-region-input';
+            const regionInput = document.getElementById(inputId);
+            const region = regionInput.value.trim();
+
+            if (region) {
+                const regionCode = getRegionCode(region);
+
+                if (regionCode) {
+                    const url = "{{ url_for('add_lr_list') }}";
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            list_id: '{{ list_id }}',
+                            region_code: regionCode,
+                            search_system: block === 'yandex' ? 'Yandex' : 'Google'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 200) { // Изменено на проверку data.status
+                            const tableBody = document.getElementById(tableBodyId);
+                            const newRow = document.createElement('tr');
+
+                            const regionCell = document.createElement('td');
+                            regionCell.textContent = region;
+                            newRow.appendChild(regionCell);
+
+                            const removeCell = document.createElement('td');
+                            const removeButton = document.createElement('span');
+                            removeButton.textContent = '×';
+                            removeButton.className = 'remove-button';
+                            removeButton.onclick = function() {
+                                tableBody.removeChild(newRow);
+                            };
+                            removeCell.appendChild(removeButton);
+                            newRow.appendChild(removeCell);
+
+                            const updateCell = document.createElement('td');
+                            const updateButton = document.createElement('button');
+                            updateButton.textContent = 'Update';
+                            updateButton.className = 'update-button';
+                            updateButton.onclick = function() {
+                                UpdateList('{{ list_id }}', regionCode, block === 'yandex' ? 'Yandex' : 'Google');
+                            };
+                            updateCell.appendChild(updateButton);
+                            newRow.appendChild(updateCell);
+
+                            tableBody.appendChild(newRow);
+                            regionInput.value = ''; // Очищаем поле ввода
+                            window.location.reload();
+                        } else {
+                            alert('Ошибка при добавлении региона: ' + data.message); // Выводим сообщение об ошибке
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка:', error);
+                    });
+                } else {
+                    alert('Неизвестный регион');
+                }
+            }
+        }
+
+        let regionCodes = {};
+
+        // Загружаем словарь регионов с бэка
+        fetch("{{ url_for('get_regions') }}")
+            .then(response => response.json())
+            .then(data => {
+                regionCodes = data; // Сохраняем словарь регионов в переменной
+                console.log('Загруженные регионы:', regionCodes); // Проверка, что данные загружены
+            })
+            .catch(error => console.error('Ошибка при загрузке регионов:', error));
+
+        function getRegionCode(region) {
+            console.log(regionCodes)
+            return regionCodes[region] || null;
+        }
+
+        async function removeRegion(list_id, lr, searchSystem) {
+            var url = "{{ url_for('delete_lr_list') }}"
+            if (confirm('Вы уверены, что хотите удалить этот регион?')) {
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ list_id: list_id, lr: lr, search_system: searchSystem })
+                });
+
+                if (response.ok) {
+                    // Remove row from table
+                    window.location.reload()
+                } else {
+                    alert('Ошибка при удалении записи.');
+                }
+            }
+        }
+
+        function UpdateList(list_lr_id) {
+    if (list_lr_id) {
+        // Show the loader
+        document.querySelector('.loader').style.display = 'block';
+
+        fetch('{{ url_for('load_live_search_list') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ list_lr_id: list_lr_id })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('List load:', data);
+            // Hide the loader
+            document.querySelector('.loader').style.display = 'none';
+            // Reload the page
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            // Hide the loader
+            document.querySelector('.loader').style.display = 'none';
+            alert(`Error: ${error.error || 'Unable to load list.'}`);
+        });
+        } else {
+            alert('Error');
+        }
+    }
+
+    </script>
+    
+</div>
+{% endblock %}

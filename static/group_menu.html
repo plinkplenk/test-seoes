@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users Table</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .table-container {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            transition: margin-top 0.3s;
+        }
+        .row {
+            display: table-row;
+        }
+        .header {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .cell {
+            display: table-cell;
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .cell a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        .cell a:hover {
+            text-decoration: underline;
+        }
+        button {
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .edit-btn {
+            background-color: orange;
+            color: white;
+            border-radius: 4px;
+        }
+        .edit-btn:hover {
+            background-color: darkorange;
+            transform: scale(1.05);
+        }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border-radius: 4px;
+        }
+        .delete-btn:hover {
+            background-color: darkred;
+            transform: scale(1.05);
+        }
+        .group-list-btn {
+            background-color: blue;
+            color: white;
+            border-radius: 4px;
+        }
+        .group-list-btn:hover {
+            background-color: darkblue;
+            transform: scale(1.05);
+        }
+        .add-btn {
+            background-color: green;
+            color: white;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .add-btn:hover {
+            background-color: darkgreen;
+            transform: scale(1.05);
+        }
+        #addUserForm {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s, margin-bottom 0.3s;
+        }
+        #addUserForm.show {
+            display: block;
+            opacity: 1;
+        }
+        #addUserForm input {
+            margin: 5px 0;
+            padding: 8px;
+            width: calc(100% - 16px);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #addUserForm input:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        #addUserForm button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #addUserForm button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        /* Стили для модального окна */
+        #editUserForm {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        #editUserForm.show {
+            display: block;
+            opacity: 1;
+        }
+        #editUserForm input, #editUserForm select {
+            margin: 5px 0;
+            padding: 8px;
+            width: calc(100% - 16px);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #editUserForm input:focus, #editUserForm select:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        #editUserForm button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #editUserForm button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        .close-btn {
+            display: block;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .close-btn:hover {
+            background-color: #c82333;
+        }
+        /* Модальное окно для отображения групп */
+        #groupListModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        #groupListModal.show {
+            display: block;
+            opacity: 1;
+        }
+        #groupTableContainer {
+            margin-top: 20px;
+        }
+        .btn-primary {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+
+    .btn-primary:active {
+        background-color: #004080;
+        transform: scale(0.98);
+    }
+
+    #addConfig {
+        max-height: 200px;  /* Примерно 10 элементов */
+        overflow-y: auto;   /* Включение вертикальной прокрутки */
+    }
+    </style>
+</head>
+<body>
+
+    <h1>Users</h1>
+    
+    <!-- Кнопка для добавления новой группы -->
+    <button class="add-btn" onclick="toggleAddUserForm()">+ Add New Group</button>
+    
+    <div id="addUserForm">
+        <h3>Add New Group</h3>
+        <form id="addGroupForm" onsubmit="return addGroup(event)" method="POST">
+            <div class="form-group">
+                <label for="addName">Name:</label>
+                <input class="form-control item" type="text" id="addName" name="name" required>
+            </div>
+
+            <div id="configsContainer">
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="addConfigField()">+ Add Config</button>
+
+            <div class="form-group">
+                <button class="btn btn-primary btn-block create-account" type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+    
+    <div class="table-container" id="tableContainer">
+        <div class="row header">
+            <div class="cell">#</div>
+            <div class="cell">Name</div>
+            <div class="cell">Actions</div>
+        </div>
+        {% for group in all_groups %}
+        <div class="row">
+            <div class="cell">{{ loop.index }}</div> <!-- Порядковый номер -->
+            <div class="cell">{{ group.name }}</div>
+            <div class="cell">
+                <button class="delete-btn" onclick="deleteGroup('{{ url_for('delete_group', group_id=group.id) }}')">Delete</button>
+                <button class="group-list-btn" data-group-id="{{ group.id }}" onclick="showGroupList(this)">Config List</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Модальное окно для отображения групп -->
+    <div id="groupListModal">
+        <h3>Group Configs</h3>
+        <div id="configTableContainer">
+            <!-- Таблица конфигов будет создана динамически здесь -->
+        </div>
+        <form id="addConfigForm" onsubmit="return addConfigToGroup(event)">
+            <h3>Add New Config</h3>
+            <div class="form-group">
+                <label for="groupName">Config Name:</label>
+                <select class="form-control item" id="groupName" name="group_name" required>
+                    {% for config in all_configs %}
+                    <option value="{{ config.id }}">{{ config.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary btn-block" type="submit">Add Config</button>
+            </div>
+            <button class="close-btn" type="button" onclick="closeGroupListModal()">Close</button>
+        </form>
+    </div>
+    
+<script>
+    let configCounter = 1; // Счетчик для уникальных id полей конфигов
+
+    function addConfigField() {
+        // Создание нового элемента для выбора конфига
+        const configContainer = document.createElement('div');
+        configContainer.classList.add('form-group', 'config-select');
+        configContainer.innerHTML = `
+            <label for="addConfig${configCounter}">Config:</label>
+            <select class="form-control item" id="addConfig${configCounter}" name="configs[]" required>
+                {% for config in all_configs %}
+                <option value="{{ config.id }}">{{ config.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-danger remove-btn" onclick="removeConfigField(this)">Remove</button>
+        `;
+
+        // Добавление нового элемента в контейнер
+        document.getElementById('configsContainer').appendChild(configContainer);
+
+        // Увеличиваем счетчик для следующего добавленного поля
+        configCounter++;
+    }
+
+    function removeConfigField(button) {
+        // Удаляем родительский элемент (контейнер с полем конфигурации)
+        button.parentElement.remove();
+    }
+        function toggleAddUserForm() {
+            const form = document.getElementById('addUserForm');
+            const tableContainer = document.getElementById('tableContainer');
+            if (form.classList.contains('show')) {
+                form.classList.remove('show');
+                tableContainer.style.marginTop = '20px'; // Возвращаем отступ
+            } else {
+                form.classList.add('show');
+                tableContainer.style.marginTop = '180px'; // Увеличиваем отступ
+            }
+        }
+
+        function addUser() {
+            const email = document.getElementById('addEmail').value;
+            const password = document.getElementById('addPassword').value;
+            
+            // Проверяем email
+            const emailPattern = /^[a-zA-Z0-9_.\-]+@[a-zA-Z0-9_.\-]+\.[a-zA-Z]{2,}$/;
+            if (!emailPattern.test(email)) {
+                document.getElementById('emailError').style.display = 'block';
+                return false;
+            }
+
+            document.getElementById('emailError').style.display = 'none';
+
+            const form = document.getElementById('userForm');
+            const formData = new FormData(form);
+            
+            // Отправляем данные на сервер
+            fetch('/add_user', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      location.reload(); // Перезагружаем страницу после добавления
+                  } else {
+                      alert('Failed to add user');
+                  }
+              });
+
+            return false; // Предотвращаем отправку формы по умолчанию
+        }
+
+        function addGroup(event) {
+            console.log("check");
+        }
+
+        function deleteGroup(url) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                fetch(url, {
+                    method: 'DELETE'
+                }).then(response => response.json())
+                  .then(data => {
+                      if (data.status === 200) {
+                          alert(data.message);
+                          location.reload(); // Перезагружаем страницу после удаления
+                      } else {
+                          alert('Failed to delete user');
+                      }
+                  });
+            }
+        }
+
+        const getGroupsUrl = '{{ url_for('get_groups_config', group_id=0) }}'; // Обратите внимание, что user_id = 0
+
+        let currentGroupId = 0; // Хранение текущего groupId для обновления после удаления
+
+function showGroupList(buttonElement) {
+    currentGroupId = buttonElement.getAttribute('data-group-id'); // Сохраняем текущий groupId
+
+    // Формируем URL для запроса
+    const url = getGroupsUrl.replace('/0', `/${currentGroupId}`);
+
+    fetch(url)
+        .then(response => response.json())
+        .then(configs => {
+            const configTableContainer = document.getElementById('configTableContainer');
+            const addGroupForm = document.getElementById('addGroupForm');
+
+            // Очищаем таблицу перед добавлением новых элементов
+            configTableContainer.innerHTML = '';
+
+            // Генерируем таблицу конфигов
+            configs.forEach((config, index) => {
+                const row = document.createElement('div');
+                row.classList.add('row');
+
+                row.innerHTML = `
+                    <div class="cell">${index + 1}</div>
+                    <div class="cell">${config.name}</div>
+                    <div class="cell">
+                        <button class="delete-btn" onclick="deleteConfigFromGroup(${config.id})">Delete</button>
+                    </div>
+                `;
+
+                configTableContainer.appendChild(row);
+            });
+
+            // Показываем модальное окно
+            const groupListModal = document.getElementById('groupListModal');
+            groupListModal.classList.add('show');
+
+            // Показываем форму добавления группы
+            addGroupForm.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error fetching configs:', error);
+        });
+}
+
+function addConfigToGroup(event) {
+    event.preventDefault(); // Предотвращаем отправку формы по умолчанию
+
+    const selectElement = document.getElementById('groupName');
+    const configId = selectElement.value; // Получаем выбранное значение из селекта
+
+    const url = `{{ url_for('add_group_for_user', group_id='${currentGroupId}', config_id='${configId}') }}`;
+
+    // Отправляем запрос на сервер
+    fetch(url, {
+        method: 'POST'
+    }).then(response => response.json())
+      .then(data => {
+          if (data.status === 200) {
+              alert(data.message);
+              showGroupList({ getAttribute: () => currentGroupId }); // Обновляем список после добавления
+          } else {
+              alert('Failed to add config');
+          }
+      }).catch(error => {
+          console.error('Error adding config:', error);
+      });
+
+    return false; // Предотвращаем отправку формы по умолчанию
+}
+
+function deleteConfigFromGroup(configId) {
+    if (confirm('Are you sure you want to delete this config from the group?')) {
+        const url = `{{ url_for('delete_config_from_group', group_id='${currentGroupId}', config_id='${configId}') }}`;
+        
+        fetch(url, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 200) {
+                alert(data.message);
+                showGroupList({ getAttribute: () => currentGroupId }); // Обновляем список после добавления
+            } else {
+                alert('Failed to delete config');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting config:', error);
+        });
+    }
+}
+
+        function closeGroupListModal() {
+            document.getElementById('groupListModal').classList.remove('show');
+        }
+
+    function addGroup(event) {
+    event.preventDefault(); // Предотвращаем отправку формы по умолчанию
+
+    const groupNameInput = document.getElementById('addName');
+    const groupName = groupNameInput.value; // Получаем значение из поля ввода имени
+
+    // Получаем все выбранные конфиги
+    const configSelects = document.querySelectorAll('select[name="configs[]"]');
+    const configs = Array.from(configSelects).map(select => select.value);
+
+    // Выводим конфиги в консоль для отладки
+    console.log('Selected configs:', configs);
+
+    // Формируем объект для отправки
+    const formData = {
+        name: groupName, // Используем правильное имя поля
+        configs: configs // Массив конфигураций
+    };
+
+    const url = `{{ url_for('add_group') }}`; // URL ручки на бэке
+
+    // Отправка данных на бэк в формате JSON
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json', // Указываем тип данных
+        },
+        body: JSON.stringify(formData), // Преобразуем объект в JSON
+    }).then(response => response.json())
+      .then(data => {
+          if (data.status === "success") {
+              alert('Group added successfully!');
+              location.reload(); // Перезагружаем страницу после добавления
+          } else {
+              alert(data.message); // Показываем сообщение об ошибке
+          }
+      }).catch(error => {
+          console.error('Error adding group:', error);
+          alert('Failed to add group.');
+      });
+
+    return false; // Предотвращаем отправку формы по умолчанию
+}
+</script>
+
+{% endblock %}

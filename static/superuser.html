@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f8f9fa;
+        color: #343a40;
+    }
+    .container {
+        margin: 0 auto;
+        width: 80%;
+        max-width: 800px;
+    }
+    .header {
+        margin-top: 20px;
+    }
+    .header h1 {
+        color: #007bff;
+    }
+    .change-role, .add-group, .delete-group, .new-block {
+        display: inline-block;
+        vertical-align: top;
+        width: 40%;
+        margin: 20px 0;
+    }
+    .change-role, .delete-group, .new-block {
+        text-align: center;
+    }
+    .add-group {
+        text-align: left;
+    }
+    .change-role h2, .add-group h2, .delete-group h2, .new-block h2 {
+        color: #007bff;
+    }
+    .buttons {
+        margin-top: 20px;
+    }
+    .buttons a, .buttons button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 200px; /* Одинаковый размер кнопок */
+        text-decoration: none;
+        text-align: center;
+    }
+    .buttons a:hover, .buttons button:hover {
+        background-color: #0056b3;
+    }
+    .form {
+        margin-top: 20px;
+    }
+    .form input, .form button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px;
+        width: 80%;
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+    }
+    .form button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+    }
+    .form button:hover {
+        background-color: #0056b3;
+    }
+    .add-group {
+        margin-left: 50px; /* Увеличенное расстояние между блоками */
+    }
+    .add-group h2 {
+        margin-left: 60px; /* Подвинуть надпись "add group" немного вправо */
+    }
+    .loader {
+        position: fixed;
+        z-index: 9999;
+        top: 10%;
+        left: 40%;
+        transform: translate(-50%, -50%);
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 50px;
+        height: 50px;
+        -webkit-animation: spin 2s linear infinite; /* Safari */
+        animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Стилизация выпадающего списка */
+    .form select {
+        display: block;
+        margin: 10px auto;
+        padding: 10px;
+        width: 80%;
+        font-size: 16px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        background-color: #fff;
+        color: #343a40;
+        appearance: none; /* Убираем стандартный стиль браузера */
+        -webkit-appearance: none; /* Убираем стиль для Safari */
+        -moz-appearance: none; /* Убираем стиль для Firefox */
+    }
+
+    .form select:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+
+    .form select option {
+        padding: 10px;
+    }
+
+    /* Стиль для контейнера выпадающего списка */
+    .form select-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 80%;
+    }
+
+    .form select-wrapper::after {
+        content: '▼'; /* Символ стрелки вниз */
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #007bff;
+    }
+</style>
+<div class="container">
+    <div class="header">
+        <h1>{{ user.username }}</h1>
+    </div>
+    <div class="new-block">
+        <h2>Add config</h2>
+        <div class="form">
+            <input type="text" id="name" placeholder="NAME">
+            <input type="text" id="database_name" placeholder="DATABASE_NAME">
+            <input type="text" id="access_token" placeholder="ACCESS_TOKEN">
+            <input type="text" id="user_id" placeholder="USER_ID">
+            <input type="text" id="host_id" placeholder="HOST_ID">
+            <button type="button" onclick="submitForm()">Add</button>
+        </div>
+    </div>
+    </div>
+    </div>
+    </div>
+</div>
+<div class="loader" style="display: none;"></div>
+<script>
+    function DeleteConfigFromGroup(url) {
+        $('.loader').show();
+        const groupName = $('#group-name-delete-config').val();
+        const config = $('#username-delete-config').val();
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ group_name: groupName, config: config })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.detail || 'An unknown error occurred.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success:', data);
+            // Обработка успешного ответа
+            $('.loader').hide();
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert(error.message); // Показываем сообщение об ошибке
+            $('.loader').hide();
+        });
+    }
+
+    function AddConfigToGroup(url) {
+    $('.loader').show();
+    const groupName = $('#group-name-add-config').val();
+    const config = $('#username-add-config').val();
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ group_name: groupName, config: config })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.detail || 'An unknown error occurred.');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+        // Обработка успешного ответа
+        $('.loader').hide();
+        window.location.reload();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert(error.message); // Показываем сообщение об ошибке
+        $('.loader').hide();
+    });
+}
+
+    function DeleteUserFromGroup(url) {
+        $('.loader').show();
+        const groupName = $('#group-name-delete-user').val();
+        const username = $('#username-delete-user').val();
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ group_name: groupName, username: username })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.detail || 'An unknown error occurred.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success:', data);
+            // Обработка успешного ответа
+            $('.loader').hide();
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert(error.message); // Показываем сообщение об ошибке
+            $('.loader').hide();
+        });
+    }
+
+    function submitForm() {
+        $('.loader').show();
+        const formData = {
+            name: $('#name').val(),
+            database_name: $('#database_name').val(),
+            access_token: $('#access_token').val(),
+            user_id: $('#user_id').val(),
+            host_id: $('#host_id').val()
+        };
+
+        fetch('{{ url_for('add_config') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.detail || 'An unknown error occurred.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success:', data);
+            // Обработка успешного ответа
+            $('.loader').hide();
+            window.location.reload();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert(error.message); // Показываем сообщение об ошибке
+            $('.loader').hide();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Загрузка списка ролей при загрузке страницы
+        fetch('{{ url_for('get_roles') }}')  // URL вашего эндпоинта для получения ролей
+            .then(response => response.json())
+            .then(data => {
+                const roleSelect = document.getElementById('role-select');
+                data.roles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.text = role;
+                    roleSelect.add(option);
+                });
+            })
+            .catch((error) => {
+                console.error('Error loading roles:', error);
+            });
+
+        // Загрузка списка пользователей при загрузке страницы
+        fetch('{{ url_for('get_usernames') }}')  // URL вашего эндпоинта для получения пользователей
+            .then(response => response.json())
+            .then(data => {
+                const usernameSelect = document.querySelector('.group-username');
+                data.usernames.forEach(username => {
+                    const option = document.createElement('option');
+                    option.value = username;
+                    option.text = username;
+                    usernameSelect.add(option);
+                });
+            })
+            .catch((error) => {
+                console.error('Error loading usernames:', error);
+            });
+
+        // Загрузка списка конфигураций при загрузке страницы
+        fetch('{{ url_for('get_configs') }}')  // URL вашего эндпоинта для получения конфигураций
+            .then(response => response.json())
+            .then(data => {
+                const configSelect = document.querySelector('.group-config');
+                data.configs.forEach(config => {
+                    const option = document.createElement('option');
+                    option.value = config;
+                    option.text = config;
+                    configSelect.add(option);
+                });
+            })
+            .catch((error) => {
+                console.error('Error loading configs:', error);
+            });
+    });
+
+    function addUsernameField() {
+        // Создаем новый контейнер для select
+        const newWrapper = document.createElement('div');
+        newWrapper.className = 'select-wrapper';
+        newWrapper.innerHTML = `
+            <select class="group-username" placeholder="Select Username">
+                <!-- Опции будут добавлены через JavaScript -->
+            </select>
+        `;
+        // Добавляем новый контейнер в DOM
+        document.getElementById('username-fields').appendChild(newWrapper);
+
+        // Небольшая задержка перед загрузкой данных
+        setTimeout(() => {
+            // Загрузка списка пользователей для нового поля
+            fetch('{{ url_for('get_usernames') }}')
+                .then(response => response.json())
+                .then(data => {
+                    const newUsernameSelect = newWrapper.querySelector('.group-username');
+                    data.usernames.forEach(username => {
+                        const option = document.createElement('option');
+                        option.value = username;
+                        option.text = username;
+                        newUsernameSelect.add(option);
+                    });
+                })
+                .catch((error) => {
+                    console.error('Error loading usernames:', error);
+                });
+        }, 100); // Задержка в 100 миллисекунд
+    }
+
+    function addConfigField() {
+        // Создаем новый контейнер для select
+        const newWrapper = document.createElement('div');
+        newWrapper.className = 'select-wrapper';
+        newWrapper.innerHTML = `
+            <select class="group-config" placeholder="Select Config">
+                <!-- Опции будут добавлены через JavaScript -->
+            </select>
+        `;
+        // Добавляем новый контейнер в DOM
+        document.getElementById('config-fields').appendChild(newWrapper);
+
+        // Небольшая задержка перед загрузкой данных
+        setTimeout(() => {
+            // Загрузка списка конфигураций для нового поля
+            fetch('{{ url_for('get_configs') }}')
+                .then(response => response.json())
+                .then(data => {
+                    const newConfigSelect = newWrapper.querySelector('.group-config');
+                    data.configs.forEach(config => {
+                        const option = document.createElement('option');
+                        option.value = config;
+                        option.text = config;
+                        newConfigSelect.add(option);
+                    });
+                })
+                .catch((error) => {
+                    console.error('Error loading configs:', error);
+                });
+        }, 100); // Задержка в 100 миллисекунд
+    }
+</script>
+{% endblock %}
