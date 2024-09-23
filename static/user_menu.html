@@ -277,16 +277,34 @@
     <button class="add-btn" onclick="toggleAddUserForm()">+ Add New User</button>
     <button class="add-btn btn-primary" onclick="toggleAddListOfUsersForm()">+ Add List of Users</button>
 
-    <!-- Форма для добавления новых пользователей -->
+    <!-- Форма для добавления списка пользователей -->
     <div id="addListOfUsersForm">
         <h3>Add New Users</h3>
-        <!-- onsubmit="return listOfUsersForm.addUsers()" -->
+        <div>
+            <p>
+                To add list of users use next format: <br>
+            <div style="border: black solid 1px;">
+                <code>
+                        &ltuser email 1&gt,<br>
+                        &ltusername 1&gt,<br>
+                        &ltpassword 1&gt,<br>
+                        <br>
+                        &ltuser email 2&gt,<br>
+                        &ltusername 2&gt,<br>
+                        &ltpassword 2&gt,<br>
+                        <br>
+                    </code>
+            </div>
+            <b>Note:</b> values must be separated by comma and new line<br>
+            <b>Note 2:</b> each group of values must be ended with the new line; <br>
+            <b>Note 3:</b> even if value is empty there must be comma on that place;
+            </p>
+        </div>
         <form id="usersForm">
-            <div class="form-group" id="addUsersGroup">
+            <div class="form-group">
+                <textarea name="user-list" id="addUsersList" cols="40" rows="10"></textarea>
                 <button class="btn btn-primary btn-block create-account" type="button"
-                    onclick="listOfUsersForm.addUsers()">Submit</button>
-                <button class="btn btn btn-block create-account" type="button" onclick="listOfUsersForm.addFields()">Add
-                    another</button>
+                    onclick="addUsers()">Submit</button>
             </div>
         </form>
     </div>
@@ -419,72 +437,27 @@
             form.classList.add('show');
             tableContainer.style.marginTop = '180px'; // Увеличиваем отступ
         }
+
         document.getElementById("addUsersGroup").addEventListener("submit", (e) => { e.preventDefault(); });
-        const listOfUsersForm = new class {
-            num = 0;
-            form = document.getElementById("addUsersGroup");
-            addFields() {
-                const fromHTML = `
-                    <div id="add-user-${this.num}">
-                        <h2>User #${this.num + 1}</h2>
-                        <div class="form-group">
-                            <label for="addEmail-${this.num}">Email:</label>
-                            <input class="form-control item" type="email" id="addEmail-${this.num}" name="email" maxlength="320"
-                                minlength="5"  required>
-                            <small id="emailError" class="form-text text-danger" style="display: none;">Invalid email
-                                format.</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="addUsername-${this.num}">Username:</label>
-                            <input class="form-control item" type="text" id="addUsername-${this.num}" name="username">
-                        </div>
-                        <div class="form-group">
-                            <label for="addPassword-${this.num}">Password:</label>
-                            <input class="form-control item" type="password" id="addPassword-${this.num}" name="password" required>
-                        </div>
-                    </div>
-                `
-                this.form.insertAdjacentHTML("beforeend", fromHTML)
-                this.num++
-            }
-            addUsers() {
-                const users = []
-                for (let i = 0; i < this.num; i++) {
-                    const email = document.getElementById(`addEmail-${i}`).value;
-                    if (!checkEmail(email)) {
-                        alert(`user #${i + 1} has invalid email`)
-                        document.getElementById('emailError').style.display = 'block';
-                        return false;
-                    }
-                    const password = document.getElementById(`addPassword-${i}`).value;
-                    const username = document.getElementById(`addUsername-${i}`).value;
-                    const userData = {
-                        email: email,
-                        password: password,
-                        username: username != "" ? username : null,
-                        is_active: true,
-                        is_superuser: false,
-                        is_verified: false,
-                        id: 0
-                    }
-                    users.push(userData);
-                }
-                fetch('/admin/batch_register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(users),
-                }).then(response => response.json()).then(data => {
-                    location.reload();
-                });
-                return false;
-            }
+        function addUsers() {
+            usersListPlaiText = document.getElementById("addUsersList").value;
+            fetch('/admin/batch_register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: usersListPlaiText,
+            }).then(response => { console.log(response); response.json() }).then(data => {
+                location.reload();
+            });
+            return false;
         }
+
         function checkEmail(email) {
             const emailPattern = /^[a-zA-Z0-9_.\-]+@[a-zA-Z0-9_.\-]+\.[a-zA-Z]{2,}$/;
             return emailPattern.test(email);
         }
+
         function addUser() {
             const email = document.getElementById('addEmail').value;
             const password = document.getElementById('addPassword').value;

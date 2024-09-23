@@ -1,9 +1,11 @@
+from email_validator import validate_email
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from sqlalchemy import and_, delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_config import current_user, RoleChecker
@@ -20,7 +22,7 @@ from api.history_api.router import router as history_router
 from api.merge_api.router import router as merge_router
 from api.live_search_api.router import router as live_search_router
 
-from sqlalchemy.exc import IntegrityError
+from utils import CommaNewLineSeparatedValues
 
 
 admin_router = APIRouter()
@@ -56,19 +58,21 @@ def pad_list_with_zeros(lst, amount):
 async def batch_register(
         request: Request,
         user: User = Depends(current_user),
-        users_to_create: list[UserCreate] = [],
         user_manager: UserManager = Depends(get_user_manager),
         session: AsyncSession = Depends(get_db_general),
         required: bool = Depends(RoleChecker(required_permissions={"Superuser"}))):
-    users_dicts = [None] * len(users_to_create)
-    for idx, user_create in zip(range(0, len(users_to_create)), users_to_create):
-        user_dict = (
-            user_create.create_update_dict()
-        )
-        password = user_dict.pop("password")
-        user_dict["hashed_password"] = user_manager.password_helper.hash(password)
-        users_dicts[idx] = user_dict
-
+    body_bytes = await request.body()
+    raw_users = body_bytes.decode("UTF-8")
+    reader = CommaNewLineSeparatedValues().reader(raw_users)
+    users_dicts = []
+    
+    for user_values in reader:
+        email, username, password = user_values
+        users_dicts.append({
+            "email": validate_email(email).email,
+            "username": username if username != "" else None,
+            "hashed_password": user_manager.password_helper.hash(password),
+        })
     try:
         await session.run_sync(lambda session: session.bulk_insert_mappings(User, users_dicts))
         await session.commit() 
