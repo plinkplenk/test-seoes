@@ -447,7 +447,11 @@
                     'Content-Type': 'text/plain'
                 },
                 body: usersListPlaiText,
-            }).then(response => { console.log(response); response.json() }).then(data => {
+            }).then(response => response.json()).then(data => {
+                if (data.status == "error") {
+                    alert(data.detail);
+                    return
+                }
                 location.reload();
             });
             return false;

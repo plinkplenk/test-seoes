@@ -1,4 +1,6 @@
 from email_validator import validate_email
+from email_validator.exceptions_types import EmailSyntaxError, EmailNotValidError
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -68,17 +70,26 @@ async def batch_register(
     
     for user_values in reader:
         email, username, password = user_values
-        users_dicts.append({
-            "email": validate_email(email).email,
-            "username": username if username != "" else None,
-            "hashed_password": user_manager.password_helper.hash(password),
-        })
+        try:
+            users_dicts.append({
+                "email": validate_email(email).email,
+                "username": username if username != "" else None,
+                "hashed_password": user_manager.password_helper.hash(password),
+            })
+        except (EmailSyntaxError, EmailNotValidError):
+            return {
+                "status": "error",
+                "detail": f"email {email} isn't valid email"
+            }
     try:
         await session.run_sync(lambda session: session.bulk_insert_mappings(User, users_dicts))
         await session.commit() 
     except IntegrityError as e:
         await session.rollback()
-        raise e
+        return {
+            "status": "error",
+            "detail": e.detail
+        }
     return {
         "status": "success",
         "detail": "Users created successfully",
