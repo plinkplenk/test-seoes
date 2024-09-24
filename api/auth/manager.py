@@ -47,7 +47,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
                 user_dict["hashed_password"] = self.password_helper.hash(password)
                 users_dicts.append(user_dict)
             except (EmailSyntaxError, EmailNotValidError):
-                raise InvalidEmail(invalid_email=email)
+                raise InvalidEmail(invalid_email=user_create.email)
 
         async with async_session_general() as session:
             try:

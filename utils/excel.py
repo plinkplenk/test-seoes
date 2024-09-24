@@ -11,5 +11,5 @@ def import_users_from_excel(file) -> Generator[UserCreate, None, None]:
     """
     wb = load_workbook(file, read_only=True, data_only=True)
     for row in wb.active.iter_rows(values_only=True):
-        email, username, password = map(str, row)
-        yield UserCreate(id=-1, email=email, username=username or None, password=password)
+        email, username, password = map(lambda value: value if value is None else str(value), row)
+        yield UserCreate(id=-1, email=email, username=username, password=password)

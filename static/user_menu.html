@@ -484,10 +484,7 @@
                 return;
             }
             const formData = new FormData()
-            console.log(file);
-
             formData.append("file", file)
-
             fetch('/admin/batch_register_excel', {
                 method: 'POST',
                 body: formData,
@@ -499,7 +496,6 @@
                 location.reload()
             });
             return false;
-
         }
 
         function addUsers() {

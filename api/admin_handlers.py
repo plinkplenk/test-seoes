@@ -72,10 +72,10 @@ async def batch_register_excel(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=info[info.rfind("DETAIL"):]) 
 
-    return {
+    return JSONResponse({
         "status": "success",
         "detail": "Users created successfully",
-    }
+    }, status_code)
 
 
 @admin_router.post("/batch_register")
@@ -107,10 +107,10 @@ async def batch_register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=info[info.rfind("DETAIL"):]) 
 
-    return {
+    return JSONResponse({
         "status": "success",
         "detail": "Users created successfully",
-    }
+    }, status_code)
 
 
 @admin_router.get("/")
