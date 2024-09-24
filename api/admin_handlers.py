@@ -1,8 +1,6 @@
-from email_validator import validate_email
-from email_validator.exceptions_types import EmailSyntaxError, EmailNotValidError
-
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi import Request
+from fastapi import UploadFile, Request
+from fastapi import status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -11,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_config import current_user, RoleChecker
+from api.auth.exceptions import InvalidEmail
 from api.auth.models import User
 from api.auth.manager import get_user_manager, UserManager
 from api.config.models import Config, Group, List, ListLrSearchSystem, ListURI, LiveSearchList, LiveSearchListQuery, UserQueryCount, YandexLr
@@ -24,7 +23,7 @@ from api.history_api.router import router as history_router
 from api.merge_api.router import router as merge_router
 from api.live_search_api.router import router as live_search_router
 
-from utils import CommaNewLineSeparatedValues
+from utils import CommaNewLineSeparatedValues, import_users_from_excel
 
 
 admin_router = APIRouter()
@@ -56,40 +55,58 @@ def pad_list_with_zeros(lst, amount):
     return lst
 
 
+@admin_router.post("/batch_register_excel")
+async def batch_register_excel(
+        request: Request,
+        file: UploadFile,
+        user_manager: AsyncSession = Depends(get_user_manager),
+        required: bool = Depends(RoleChecker({"Superuser"})),
+        status_code=status.HTTP_201_CREATED):
+    try:
+        await user_manager.batch_create(import_users_from_excel(file.file))
+    except InvalidEmail as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
+    except IntegrityError as e:
+        info = e.orig.args[0]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=info[info.rfind("DETAIL"):]) 
+
+    return {
+        "status": "success",
+        "detail": "Users created successfully",
+    }
+
+
 @admin_router.post("/batch_register")
 async def batch_register(
         request: Request,
         user: User = Depends(current_user),
         user_manager: UserManager = Depends(get_user_manager),
-        session: AsyncSession = Depends(get_db_general),
-        required: bool = Depends(RoleChecker(required_permissions={"Superuser"}))):
+        required: bool = Depends(RoleChecker(required_permissions={"Superuser"})),
+        status_code=status.HTTP_201_CREATED):
     body_bytes = await request.body()
     raw_users = body_bytes.decode("UTF-8")
     reader = CommaNewLineSeparatedValues().reader(raw_users)
-    users_dicts = []
-    
-    for user_values in reader:
-        email, username, password = user_values
-        try:
-            users_dicts.append({
-                "email": validate_email(email).email,
-                "username": username if username != "" else None,
-                "hashed_password": user_manager.password_helper.hash(password),
-            })
-        except (EmailSyntaxError, EmailNotValidError):
-            return {
-                "status": "error",
-                "detail": f"email {email} isn't valid email"
-            }
     try:
-        await session.run_sync(lambda session: session.bulk_insert_mappings(User, users_dicts))
-        await session.commit() 
+        await user_manager.batch_create(
+            map(lambda user_create: 
+                    UserCreate(
+                        id=-1, 
+                        email=user_create[0],
+                        # username is None when it's empty string
+                        username=user_create[1] or None,
+                        password=user_create[2]),
+                    reader)
+                )
+    except InvalidEmail as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
     except IntegrityError as e:
-        await session.rollback()
-        return {
-            "status": "error",
-            "detail": e.detail
-        }
+        info = e.orig.args[0]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=info[info.rfind("DETAIL"):]) 
+
     return {
         "status": "success",
         "detail": "Users created successfully",
