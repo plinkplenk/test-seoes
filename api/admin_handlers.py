@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import UploadFile, Request
 from fastapi import status
@@ -63,7 +65,8 @@ async def batch_register_excel(
         required: bool = Depends(RoleChecker({"Superuser"})),
         status_code=status.HTTP_201_CREATED):
     try:
-        await user_manager.batch_create(import_users_from_excel(file.file))
+        file = await file.read()
+        await user_manager.batch_create(import_users_from_excel(BytesIO(file)))
     except InvalidEmail as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
     except IntegrityError as e:
