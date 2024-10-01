@@ -4,11 +4,20 @@ import os
 
 load_dotenv()
 
+APP_PORT = os.environ.get("APP_PORT")
 DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DB_HOST =os.environ.get( "DB_HOST")
 DB_PORT = os.environ.get("DB_PORT")
 SECRET = os.environ.get("SECRET")
+
+REDIS_HOST = os.environ.get("REDIS_HOST")
+REDIS_PORT = os.environ.get("REDIS_PORT")
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
+REDIS_DB = os.environ.get("REDIS_DB")
+
+
+MONTHLY_REQUEST_LIMIT = os.environ.get("MONTHLY__REQUEST_LIMIT")
 
 DATABASE_GENERAL_NAME = os.environ.get("DATABASE_GENERAL_NAME")
 

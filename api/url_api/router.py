@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime, timedelta
 import io
+from cmath import inf
 from itertools import groupby
 import logging
 import sys
@@ -13,7 +14,7 @@ from openpyxl import Workbook
 from sqlalchemy import delete
 
 from api.actions.actions import get_last_date, get_last_load_date
-from api.actions.urls import _get_urls_with_pagination, _get_urls_with_pagination_and_like, _get_urls_with_pagination_and_like_sort, _get_urls_with_pagination_sort
+from api.actions.urls import _get_urls_with_pagination, _get_urls_with_pagination_and_like, _get_urls_with_pagination_and_like_sort, _get_urls_with_pagination_sort, _get_metrics_daily_summary, _get_metrics_daily_summary_like, _get_not_void_count_daily_summary, _get_not_void_count_daily_summary_like
 from api.auth.models import User
 
 from api.auth.auth_config import current_user
@@ -604,7 +605,6 @@ async def get_urls(
 
     if len(grouped_data) == 0:
         return JSONResponse({"data": []})
-
     data = []
     for el in grouped_data:
         res = {"url":
@@ -650,13 +650,133 @@ async def get_urls(
                               <span style='font-size: 8px'>ctr:{0}%</span>
                               </div>"""
         data.append(res)
-
     json_data = jsonable_encoder(data)
 
-    logger.info("get url data success")
+    logger.info("get query data success")
     # return JSONResponse({"data": json_data, "recordsTotal": limit, "recordsFiltered": 50000})
-    return JSONResponse({"data": json_data})
+    return JSONResponse({"data": json_data#, "metricks_data": json_metricks_data
+                        })
+@router.post("/get_total_sum_urls/")
+async def get_total_sum_urls(
+    request: Request, 
+    data_request: dict, 
+    user: User = Depends(current_user),
+    general_session: AsyncSession = Depends(get_db_general)
+    ):
+    DATABASE_NAME = request.session['config'].get('database_name', "")
+    group = request.session['group'].get('name', '')
+    async_session = await connect_db(DATABASE_NAME)
 
+    start_date = datetime.strptime(data_request["start_date"], date_format_2)
+    end_date = datetime.strptime(data_request["end_date"], date_format_2)
+    metricks_data = []
+
+    if data_request["search_text"] == "":
+        metricks, total_records = await _get_metrics_daily_summary(
+                    start_date,
+                    end_date,
+                    data_request["list_name"],
+                    async_session,
+                    general_session,
+                    )
+    else:
+        metricks, total_records = await _get_metrics_daily_summary_like(
+                    start_date,
+                    end_date,
+                    data_request["search_text"], 
+                    data_request["list_name"],
+                    async_session,
+                    general_session,
+                    )
+    if data_request["search_text"] == "":
+        not_void_count_metricks = await _get_not_void_count_daily_summary(
+                    start_date,
+                    end_date,
+                    data_request["list_name"],
+                    async_session,
+                    general_session,
+                    )
+    else:
+        not_void_count_metricks = await _get_not_void_count_daily_summary_like(
+                    start_date,
+                    end_date,
+                    data_request["search_text"], 
+                    data_request["list_name"],
+                    async_session,
+                    general_session,
+                    )
+    total_clicks_days = 0
+    total_impession_days = 0
+    total_not_void = 0
+    res_clicks = {"url":
+                f"<div style='width:355px; height: 55px; overflow: auto; white-space: nowrap;'><span>Суммарные клики</span></div>"}
+    res_impressions = {"url":
+                f"<div style='width:355px; height: 55px; overflow: auto; white-space: nowrap;'><span>Суммарные показы</span></div>"}
+    res_not_void = {"url":
+                f"<div style='width:355px; height: 55px; overflow: auto; white-space: nowrap;'><span>Строки с данными</span></div>"}
+    prev_clicks_value = -inf
+    prev_impression_value = -inf
+    for date, clicks_count, impressions_count in sorted(metricks, key=lambda x: x[0]):
+        if clicks_count >= prev_clicks_value:
+            color = "#9DE8BD"  # green
+        else:
+            color = "#FDC4BD"  # red
+        if clicks_count > 0:
+            res_clicks[date.strftime(
+                date_format_2)] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: {color}; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{clicks_count}</span>
+                                    </div>"""
+            total_clicks_days += clicks_count
+        else:
+            res_clicks[date.strftime(date_format_2)] = "0"
+        prev_clicks_value = clicks_count
+        
+        if impressions_count >= prev_impression_value:
+            color = "#9DE8BD"  # green
+        else:
+            color = "#FDC4BD"  # red
+        if impressions_count > 0:
+            res_impressions[date.strftime(
+                date_format_2)] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: {color}; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{impressions_count}</span>
+                                    </div>"""
+            total_impession_days += impressions_count
+        else:
+            res_impressions[date.strftime(date_format_2)] = "0"
+        prev_impression_value = impressions_count
+
+    for date, not_void_count in sorted(not_void_count_metricks, key=lambda x: x[0]):
+        total_not_void += not_void_count
+        res_not_void[date.strftime(
+                date_format_2)] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #9DE8BD; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{not_void_count}</span>
+                                    </div>"""
+        
+    res_clicks["result"] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #9DE8BD; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{total_clicks_days}</span>
+                                    </div>"""
+    res_impressions["result"] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #9DE8BD; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{total_impession_days}</span>
+                                    </div>"""
+    res_not_void["result"] = f"""<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #9DE8BD; text-align: center; display: flex; align-items: center; justify-content: center;'>
+                                    <span style='font-size: 18px'>{total_not_void}</span>
+                                    </div>"""
+    
+
+    metricks_data.append(res_clicks)
+    metricks_data.append(res_impressions)
+    metricks_data.append(res_not_void)
+
+    json_total_records = jsonable_encoder(*total_records)
+    json_metricks_data = jsonable_encoder(metricks_data)
+
+    logger.info("get query data success")
+    # return JSONResponse({"data": json_data, "recordsTotal": limit, "recordsFiltered": 50000})
+    return JSONResponse({"metricks_data": json_metricks_data, "total_records": json_total_records
+                        })
+    
+
+    #logger.info(f"connect to database: {DATABASE_NAME}")
 
 @router.delete("/")
 async def delete_url(

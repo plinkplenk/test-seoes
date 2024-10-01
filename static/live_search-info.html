@@ -11,20 +11,19 @@
 </head>
 <body>
     <div class="button-container">
-        <a href="{{ url_for('show_profile', username=user.username) }}" class="back-to-menu">Back to profile</a>
-
+        {% if user.role in (1, 2, 3) %}
+            <a href="{{ url_for('show_profile', username=user.username) }}" class="back-to-menu">Back to profile</a>
+        {% endif %}
         <!-- New section for displaying current system and region -->
-        <div class="current-info">
-            <p style="font-size: 1.5em; font-weight: bold;">Текущая Система: {{ search_system }}</p>
-            <p style="font-size: 1.5em; font-weight: bold;">Текущий регион: {{ region_dict[current_region] }}</p>
+        <div class="current-info">   
         </div>
 
         <input type="button" value="Update Data Live Search" onclick="sendRequest('{{ url_for('load_live_search_list') }}', '{{ lr_id }}')">
 
         <select id="searchEngineSelect" onchange="redirectToEngine()">
             <option value="">Select Search Engine</option>
-            <option value="{{ url_for('get_live_search').include_query_params(list_id=list_id, search_system='Yandex', lr_id=-1) }}">Yandex</option>
-            <option value="{{ url_for('get_live_search').include_query_params(list_id=list_id, search_system='Google', lr_id=-1) }}">Google</option>
+            <option value="{{ url_for('get_live_search').include_query_params(list_id=list_id, search_system='Yandex', lr_id=-1) }}" {{'selected' if search_system=='Yandex' else '' }}>Yandex</option>
+            <option value="{{ url_for('get_live_search').include_query_params(list_id=list_id, search_system='Google', lr_id=-1) }}" {{ 'selected' if search_system == 'Google' else '' }} >Google</option>
         </select>
 
         <!-- Dropdown for selecting region -->
@@ -78,9 +77,15 @@
 
 
 <script>
-const initialSearchSystem = "{{ search_system }}";
+    const initialSearchSystem = "{{ search_system }}";
     const initialRegionId = "{{ lr_id }}";
+    
+    var selectElement = document.getElementById('searchEngineSelect');
+    localStorage.setItem('selectedSearchEngine', selectElement.selectedIndex);
 
+    selectElement = document.getElementById('regionSelect');
+    selectElement.value = window.location.href;
+    
     // Default values for search engine and region
     const defaultSearchEngineIndex = 0; // Adjust based on your options
     const defaultRegionId = ''; // Adjust based on your default region ID
@@ -89,7 +94,7 @@ const initialSearchSystem = "{{ search_system }}";
         var selectElement = document.getElementById('searchEngineSelect');
         var selectedUrl = selectElement.value;
         localStorage.setItem('selectedSearchEngine', selectElement.selectedIndex); // Save the selected index to localStorage
-
+        
         if (selectedUrl) {
             window.location.href = selectedUrl;
         }
@@ -99,7 +104,7 @@ const initialSearchSystem = "{{ search_system }}";
     function restoreSelectedSearchEngine() {
         var selectElement = document.getElementById('searchEngineSelect');
         var savedIndex = localStorage.getItem('selectedSearchEngine');
-
+        
         if (savedIndex !== null) {
             selectElement.selectedIndex = savedIndex;
         } else if (initialSearchSystem) {
@@ -147,15 +152,22 @@ const initialSearchSystem = "{{ search_system }}";
     function initializeLocalStorage() {
         var savedSearchEngine = localStorage.getItem('selectedSearchEngine');
         var savedRegion = localStorage.getItem('selectedRegion');
-
+        
         if (savedSearchEngine === null) {
             // Set default value if not present
             localStorage.setItem('selectedSearchEngine', defaultSearchEngineIndex);
         }
-
+        
+        var selectElement = document.getElementById('regionSelect');    
         if (savedRegion === null) {
             // Set default value if not present
-            localStorage.setItem('selectedRegion', defaultRegionId);
+            if (selectElement.value != '') {
+                localStorage.setItem('selectedRegion', selectElement.value);
+            }
+            else{
+                selectElement.value = "{{ url_for('get_live_search').include_query_params(list_id=list_id, search_system=search_system, lr_id=initialRegionId) }}"
+                localStorage.setItem('selectedRegion', defaultRegionId);
+            }
         }
     }
 
@@ -169,7 +181,7 @@ const initialSearchSystem = "{{ search_system }}";
     // Clear localStorage on page unload (including refresh)
     window.addEventListener('beforeunload', function() {
         localStorage.removeItem('selectedSearchEngine');
-        localStorage.removeItem('selectedRegion');
+        localStorage.removeItem('selectedRegion'); 
     });
 
     var state = null;

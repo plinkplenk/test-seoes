@@ -9,64 +9,71 @@
 <body>
     <header>
         {% if user is not none %}
-        <div class="dropdown">
-            <a href="{{ url_for('show_profile', username=user.username) }}">
-                <button class="button">{{ user.email }}</button>
-            </a>
-            <div class="dropdown-content">
-                <a href="{{ url_for('get_queries') }}">Query Table</a>
-                <a href="{{ url_for('get_urls')}}">Url Table</a>
-                <a href="{{ url_for('get_history') }}">All history Table</a>
-                <a href="{{ url_for('show_menu_merge_page') }}">Query & Url Merge Table</a>
-                <a href="{{ url_for('show_list', username=user.username) }}">List Panel</a>
-            </div>
-        </div>
-        <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_superuser', username=user.username) }}')">Command Panel</button>
-        <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_live_search', username=user.username) }}')">Live Search List Panel</button>
-        <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_user_menu') }}')">User Menu</button>
-        <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_group_menu') }}')">Group Menu</button>
-        <button class="button main-page-button" onclick="main_page_button()">Main Page</button>
-        <div class="header-right">
-            <div class="dropdown">
-                <span class="dropdown-label">Проекты:</span>
-                <button class="button dropbtn" id="dropdownButton">
-                    {% if config_names %}
-                        None
-                    {% else %}
-                        None
-                    {% endif %}
-                </button>
-                <div class="dropdown-content">
-                    {% if config_names %}
-                        {% for config in config_names %}
-                        <a href="#" onclick="selectConfig('{{ config }}')">{{ config }}</a>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty">None</div>
-                    {% endif %}
+            {% if user.role == 4 %}
+                <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_live_search', username=user.username) }}')">Live Search List Panel</button>
+                <div class="header-right">
+                    <button class="button" onclick="logout_button()">Logout</button>
                 </div>
-            </div>
-            <div class="dropdown">
-                <span class="dropdown-label">Группы:</span>
-                <button class="button dropbtn" id="secondDropdownButton">
-                    {% if group_names %}
-                        Group
-                    {% else %}
-                        None
-                    {% endif %}
-                </button>
-                <div class="dropdown-content">
-                    {% if group_names %}
-                        {% for group in group_names %}
-                        <a href="#" onclick="selectGroup('{{ group }}')">{{ group }}</a>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty">None</div>
-                    {% endif %}
+            {% else %}
+                <div class="dropdown">
+                    <a href="{{ url_for('show_profile', username=user.username) }}">
+                        <button class="button">{{ user.email }}</button>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('get_queries') }}">Query Table</a>
+                        <a href="{{ url_for('get_urls')}}">Url Table</a>
+                        <a href="{{ url_for('get_history') }}">All history Table</a>
+                        <a href="{{ url_for('show_menu_merge_page') }}">Query & Url Merge Table</a>
+                        <a href="{{ url_for('show_list', username=user.username) }}">List Panel</a>
+                    </div>
                 </div>
-            </div>
-            <button class="button" onclick="logout_button()">Logout</button>
-        </div>
+                <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_superuser', username=user.username) }}')">Command Panel</button>
+                <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_live_search', username=user.username) }}')">Live Search List Panel</button>
+                <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_user_menu') }}')">User Menu</button>
+                <button class="button superuser-button" onclick="superuser_button('{{ url_for('show_group_menu') }}')">Group Menu</button>
+                <button class="button main-page-button" onclick="main_page_button()">Main Page</button>
+                <div class="header-right">
+                    <div class="dropdown">
+                        <span class="dropdown-label">Проекты:</span>
+                        <button class="button dropbtn" id="dropdownButton">
+                            {% if config_names %}
+                                None
+                            {% else %}
+                                None
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-content">
+                            {% if config_names %}
+                                {% for config in config_names %}
+                                <a href="#" onclick="selectConfig('{{ config }}')">{{ config }}</a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="empty">None</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <span class="dropdown-label">Группы:</span>
+                        <button class="button dropbtn" id="secondDropdownButton">
+                            {% if group_names %}
+                                Group
+                            {% else %}
+                                None
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-content">
+                            {% if group_names %}
+                                {% for group in group_names %}
+                                <a href="#" onclick="selectGroup('{{ group }}')">{{ group }}</a>
+                                {% endfor %}
+                            {% else %}
+                                <div class="empty">None</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button class="button" onclick="logout_button()">Logout</button>
+                </div>
+            {% endif %}
         {% else %}
             <button class="button" onclick="login_button()">Login</button>
         {% endif %}

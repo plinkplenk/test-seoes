@@ -39,7 +39,7 @@ async def show_main_page(
                                       {"request": request,
                                        "user": user,
                                        "config_names": config_names,
-                                       "group_names": group_names}) 
+                                       "group_names": group_names})
 
 
 @router.post("/change_user_role")

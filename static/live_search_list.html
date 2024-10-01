@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Региональная таблица</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href=" https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.min.css " rel="stylesheet"> 
+    <script src=" https://cdn.jsdelivr.net/npm/air-datepicker@3.5.3/air-datepicker.min.js "></script>
     <style>
         .content {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 30px 0;
             margin: 0;
             background-color: #f4f4f4;
         }
@@ -149,10 +152,144 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .hidden {
+            display: none !important;
+        }
+        .toggle {
+            cursor: pointer;
+            display: inline-block;
+        }
+        .toggle-switch {
+            display: inline-block;
+            background: #ccc;
+            border-radius: 16px;
+            width: 32px;
+            height: 18px;
+            position: relative;
+            vertical-align: middle;
+            transition: background 0.25s;
+        }
+        .toggle-switch:before, .toggle-switch:after {
+            content: "";
+        }
+        .toggle-switch:before {
+            display: block;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+            width: 12px;
+            height: 12px;
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            transition: left 0.25s;
+        }
+        .toggle:hover .toggle-switch:before {
+            background: linear-gradient(to bottom, #fff 0%, #fff 100%);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+        }
+        .toggle-checkbox:checked + .toggle-switch {
+            background: #28a745;
+        }
+        .toggle-checkbox:checked + .toggle-switch:before {
+            left: 16px;
+        }
+
+        .toggle-checkbox {
+            position: absolute;
+            visibility: hidden;
+        }
+
+        .toggle-label {
+            position: relative;
+            top: 2px;
+        }
+
+        .day-btn {
+            aspect-ratio: 1;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            width: 7%;
+        }
+
+        .selected {
+            background: #007bff;
+            color: #fff !important;
+        }
+
+        .red-btn {
+            background-color: red;
+        }
+
+        .common-btn {
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .invisible {
+            visibility: hidden;
+        }
+        .visible {
+            visibility: visible;
+        }
+
+        nav.air-datepicker-nav {
+            display: none !important;
+        }
+        #scheduler-month-day-picker .air-datepicker-body--day-names {
+            display: none !important;
+        }
+        /* #scheduler-week-day-picker .air-datepicker-body--cells  {
+            display: none;
+        } */
+        #scheduler-week-day-picker .air-datepicker-body--day-names {
+            display: none;
+        }
+        #scheduler-week-day-picker   .-disabled- {
+            display: none !important;
+        }
+        #updates-scheduler-main-group {
+            margin: 10px 0;
+        }
     </style>
 </head>
 <div class="content">
+
+    <!-- Выбор дней обновления -->
     <div class="container">
+        <div class="block">
+            <label class="toggle">
+                <span class="toggle-label">Запланировать обновления</span>
+                <input class="toggle-checkbox" id="toggle-scheduler" type="checkbox"  >
+<!-- onchange="toggleSchedulerBlock()" -->
+                <div class="toggle-switch"></div>
+            </label>
+            <div id="updates-scheduler-main-block" class="hidden">
+                <div id="updates-scheduler-main-group">
+                    <button id="scheduler-month-day-picker-toggle-btn" class="common-btn">Выбрать дни месяца</button>
+                    <button id="scheduler-week-day-picker-toggle-btn" class="common-btn">Выбрать дни недели</button>
+
+                    <div id="scheduler-month-day-picker" class="hidden" style="margin: 10px 0;"></div>
+                    <div id="scheduler-week-day-picker" class="hidden" style="margin: 10px 0;"></div>
+                    <div id="scheduler-time-picker" style="margin: 10px 0;"></div>
+                </div>
+                <button id="save-updates-schedule-btn" class="common-btn selected" style="margin: 10px 0;">
+                    Сохранить
+                </button>
+            </div>
+        </div>
+
         <!-- Название списка -->
         <div class="list-name">{{ list_name }}</div>
 
@@ -351,6 +488,7 @@
 
         let regionCodes = {};
 
+        console.log('{{ url_for('load_live_search_list') }}', "{{ url_for('get_regions') }}");
         // Загружаем словарь регионов с бэка
         fetch("{{ url_for('get_regions') }}")
             .then(response => response.json())
@@ -420,8 +558,240 @@
             alert('Error');
         }
     }
+        
+        const listId = "{{ list_id }}"
+
+        class ToggleBtn {
+            constructor(btnId, elementToToggleId) {
+                this.button = document.getElementById(btnId)
+                this.elementToToggle = document.getElementById(elementToToggleId)
+                this.isHidden = this.elementToToggle.classList.contains("hidden")
+                this.button.addEventListener("click", () => this.toggle())
+            } 
+            onShow(callback) {
+                this.onShowCallback = callback
+            }
+            onHide(callback) {
+                this.onShow = callback
+            }
+            hide() {
+                this.elementToToggle.classList.add("hidden")
+                this.button.classList.remove("selected")
+                this.isHidden = true
+            }
+            show() {
+                this.onShowCallback && this.onShowCallback()
+                this.elementToToggle.classList.remove("hidden")
+                this.button.classList.add("selected")
+                this.isHidden = false 
+            }
+            toggle() {
+                this.isHidden ? this.show() : this.hide()
+            }
+        }
+ 
+        const UpdatesMode = {
+            Disabled: "Disabled",
+            MonthDays: "MonthDays",
+            WeekDays: "WeekDays",
+        }
+        const schedulerDates = new class {
+            data
+            updatesCheckbox
+            mode
+            selectMonthDaysBtn
+            selectWeekDaysBtn
+            #hours
+            #minutes
+            #timeZoneOffset
+            constructor() {
+                this.#hours = 0
+                this.#minutes = 0
+                this.weekDaysPicker = this.#setupWeekDaysPicker()
+                this.monthDaysPicker = this.#setupMonthDaysPicker()
+                this.timePicker = this.#setupTimePicker()
+                this.selectMonthDaysBtn = new ToggleBtn("scheduler-month-day-picker-toggle-btn", "scheduler-month-day-picker")
+                this.selectWeekDaysBtn = new ToggleBtn("scheduler-week-day-picker-toggle-btn", "scheduler-week-day-picker")
+                this.schedulerMainBlock = document.getElementById("updates-scheduler-main-block")
+                this.updatesCheckbox = document.getElementById("toggle-scheduler")
+                this.updatesCheckbox.addEventListener("change", (event) => {
+                    if (this.updatesCheckbox.checked) {
+                        this.schedulerMainBlock.classList.remove("hidden")
+                    } else {
+                        this.schedulerMainBlock.classList.add("hidden")
+                    }
+                })
+                this.submitBtn = document.getElementById("save-updates-schedule-btn")
+                this.submitBtn.addEventListener("click", () => {
+                    if(confirm("Вы уверены, что хотете сохранить изменения?"))
+                        return this.save()
+                })
+                this.#setupSelectButtons()
+                this.#loadUpdatesSchedule()
+            }
+            #setupSelectButtons() {
+                this.selectMonthDaysBtn.onShow(() => {
+                    this.mode = UpdatesMode.MonthDays
+                    this.selectWeekDaysBtn.hide()
+                })
+                this.selectWeekDaysBtn.onShow(() => {
+                    this.mode = UpdatesMode.WeekDays
+                    this.selectMonthDaysBtn.hide()
+                })
+            }
+            #loadUpdatesSchedule() {
+                fetch(`/admin/list_menu/${listId}/updates_schedule`)
+                .then(response => response.json())
+                .then(data => {
+                    if(!data) {
+                        console.log("no data");
+                        this.updatesCheckbox.checked = false;
+                        return
+                    }
+                    this.data = data
+                    const isDisabled = UpdatesMode.Disabled === this.data.mode
+                    this.updatesCheckbox.checked = !isDisabled;
+                    if(!isDisabled) {
+                        this.schedulerMainBlock.classList.remove("hidden")
+                        this.timePicker.selectDate(new Date(`1 Juli 2024 ${data.hours}:${data.minutes}`), {updateTime: true})
+                        if(this.data.mode == UpdatesMode.WeekDays) {
+                            this.selectWeekDaysBtn.show()
+                            this.data.days.forEach(day => {
+                                if (day < 1 || day > 7) return
+                                this.weekDaysPicker.selectDate(new Date(`${day} Juli 2024`))
+                            });
+                        }
+                        if (this.data.mode == UpdatesMode.MonthDays) {
+                            this.selectMonthDaysBtn.show()
+                            this.data.days.forEach(day => {
+                                if (day < 1 || day > 31) return
+                                this.monthDaysPicker.selectDate(new Date(`${day} Juli 2024`))
+                            });
+                        }
+                    }
+                    
+                })
+                .catch(error => console.error('Ошибка при загрузки расписания обновлений:', error))
+            }
+            #setupWeekDaysPicker() {
+                const picker = new AirDatepicker('#scheduler-week-day-picker', {
+                    multipleDates: true,
+                    startDate: "1 Juli 2024",
+                    weekends: [],
+                    view: "days",
+                    showOtherMonths: false,
+                    selectOtherMonths: false,
+                    onRenderCell({date, cellType}) {
+                        const isDay = cellType === 'day'
+                        return {
+                            html: isDay ? date.toLocaleString("ru", {weekday: "short"}) : undefined,
+                        }
+                    },
+                })
+                picker.disableDate(Array.from({length: 31 - 7, }, (_, i) => {
+                    return new Date(`${i+1+7} Juli 2024`)
+                }))
+                return picker
+            }
+            #setupMonthDaysPicker() {        
+                return new AirDatepicker('#scheduler-month-day-picker', {
+                    multipleDates: true,
+                    startDate: "01 Juli 2024",
+                    weekends: [],
+                    view: "days",
+                    showOtherMonths: false,
+                    selectOtherMonths: false,
+                    buttons: ["clear"],
+                    dateFormat(date) {
+                        return date.toLocaleString()
+                    },
+                })
+            }
+            #setupTimePicker() {
+                const timePicker = new AirDatepicker("#scheduler-time-picker", {
+                    // picked month which contains 31 days and starts from monday
+                    startDate: "01.01.2024 00:00",
+                    inline: true,
+                    timepicker: true,
+                    minutesStep: 15,
+                    onlyTimepicker: true,
+                    onSelect: ({date, formattedDate, datepicker}) => {
+                        this.#hours = date.getHours()
+                        this.#timeZoneOffset = date.getTimezoneOffset()
+                        this.#minutes = date.getMinutes()
+                    }
+                }) 
+                return timePicker
+            }
+            #getWeekDaysScheduleRequest() {
+                let timeInMinutes = this.#hours
+                let daysOffset = 0
+                return {
+                    days: this.weekDaysPicker.selectedDates.map(date => {
+                        return date.getDate()
+                    }),
+                    mode: UpdatesMode.WeekDays,
+                    hours: this.#hours,
+                    minutes: this.#minutes,
+                }
+            }
+            #getMonthDaysScheduleRequest() {
+                return {
+                    days: this.monthDaysPicker.selectedDates.map(date => {
+                        return date.getDate()
+                    }),
+                    mode: UpdatesMode.MonthDays,
+                    hours: this.#hours,
+                    minutes: this.#minutes,
+                }
+            }
+            #getDisabledMoreRequest() {
+                return {
+                    mode: UpdatesMode.Disabled,
+                }
+            }
+            save() {
+                let request
+                if (this.mode == UpdatesMode.Disabled){ 
+                    request = this.#getDisabledMoreRequest()
+                }
+                if (this.mode == UpdatesMode.WeekDays){
+                    request = this.#getWeekDaysScheduleRequest()
+                }
+                if (this.mode == UpdatesMode.MonthDays){
+                    request = this.#getMonthDaysScheduleRequest()
+                }
+                fetch(`/admin/list_menu/${listId}/updates_schedule`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(request)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+            }
+        }
+        const schedulerToggler = document.getElementById("toggle-scheduler")
+        schedulerToggler.addEventListener("click", (e) => {
+            if(!schedulerToggler.checked){
+                if (confirm("Вы уверены, что хотете отключить автообновления?")){
+                    schedulerDates.mode = UpdatesMode.Disabled
+                    schedulerDates.save()
+                } else {
+                    e.preventDefault()
+                }
+            }
+        })
+        schedulerToggler.addEventListener("change", (e) => {
+            !schedulerToggler.checked && (schedulerDates.mode = schedulerToggler.inputMode.Disabled)
+        })
+        
 
     </script>
-    
+
 </div>
 {% endblock %}

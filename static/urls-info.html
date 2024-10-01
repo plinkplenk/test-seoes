@@ -34,9 +34,10 @@
     <input type="button" value="Отфильтровать" onclick="UpdateTable();">
     <input type="button" value="Excel" onclick="generateExcel('{{ url_for('generate_excel_url')}}');">
     <input type="button" value="Csv" onclick="generateCsv('{{ url_for('generate_csv_url')}}');">
+    <input type="button" value="Вычислить суммы" onclick="getTotalSum('{{ url_for('get_total_sum_urls')}}');">
     
     <table id="example" class="display nowrap" style="width:100%;">
-        <thead>
+        <thead id="thead_t">
             <tr id="head_t">
                 <!-- Table headers will be inserted here dynamically -->
             </tr>
@@ -68,6 +69,10 @@
     var global_date = null;
     var metric_type = null;
     var state_type = "date";
+
+    var prev_start_date = null;
+    var prev_end_date = null;
+    var prev_search_field = "";
 
     function getDayOfWeek(dateString) {
       const dateParts = dateString.split("-");
@@ -137,7 +142,7 @@
         // Set the default value of the second input to two weeks ago
         document.getElementById('start_date').value = getDate(14);
     }
-
+    
 
     function SetDataTable() {
 
@@ -310,7 +315,7 @@
             rButton.style.height = '20px'; // Высота кнопки
             rButton.style.fontSize = '12px'; // Размер шрифта
             rButton.style.padding = '2px 2px'; // Отступы внутри кнопки
-            rButton.innerHTML = "R";
+            rButton.innerHTML = "R↓";
             let cButton = document.createElement('button');
             cButton.style.width = '20px';  // Ширина кнопки
             cButton.style.height = '20px'; // Высота кнопки
@@ -423,6 +428,15 @@
 
             row.appendChild(nameCell);
         }
+        
+        // Сортировка по показам по умолчанию
+        state_type = "result";                
+        state = "decrease";
+        metric_type = "R";
+
+        prev_start_date = document.getElementById('start_date').value;
+        prev_end_date = document.getElementById('end_date').value;
+        prev_search_text = document.getElementById("search_field").value;
 
         var url = "{{ url_for('get_urls') }}";
         var params = {
@@ -439,8 +453,8 @@
             metric_type: metric_type,
             state_type: state_type,
             list_name: "{{ list_name }}",
+            //total_sum_flag: "false",
         };
-
         fetch(url, {
             method: "POST",
             headers: {
@@ -452,7 +466,10 @@
             .then(response => response.json())
             .then(data => {
                 // Обработка ответа
+                metricks_data = data.metricks_data;
                 data = data.data;
+
+                
                 var table = $('#body_t');
                 empty = `<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #B9BDBC'>
             <span style='font-size: 18px'><span style='color:red'>NAN</span></span><br>
@@ -471,7 +488,6 @@
                     newRow += '</tr>';
                     table.append(newRow);
                 }
-
             })
             .catch(error => {
                 // Обработка ошибки
@@ -821,16 +837,38 @@
 
             row.appendChild(nameCell);
         }
+        
+        // Удаление суммарных показателей если изменены даты или поисковое поле
+        start_date_value = document.getElementById('start_date').value; // Дата начала поиска
+        end_date_value = document.getElementById('end_date').value; // Дата окончания поиска    
+        search_text_value = document.getElementById("search_field").value;
+        if (start_date_value != prev_start_date || end_date_value!= prev_end_date || search_text_value!= prev_search_text) {
+            var elmtTable = document.getElementById('thead_t');
+            var rows = elmtTable.getElementsByTagName('tr');
+            var rowCount = rows.length;
+            for (var x = rowCount-1; x > 0; x--) {
+                
+                elmtTable.removeChild(rows[x]);
+            }
+        }
+        prev_start_date = document.getElementById('start_date').value;
+        prev_end_date = document.getElementById('end_date').value;
+        prev_search_text = document.getElementById("search_field").value;
+        
+
+        document.querySelector('#head_t td:first-child').textContent = `url`; // Обновляем текст, убираем количество записей после 'url'
+        
+        // Получение данных из API
         var CurPage = document.getElementById("cur").innerHTML;
         CurPage = Number.parseInt(CurPage, 10)
         var url = "{{ url_for('get_urls') }}";
         var params = {
             length: 50, // количество отображаемых элементов
             start: (CurPage - 1) * 50, // номер страницы
-            start_date: document.getElementById('start_date').value, // Дата начала поиска
-            end_date: document.getElementById('end_date').value, // Дата окончания поиска
+            start_date: start_date_value,
+            end_date: end_date_value, 
             amount: calculateDays(),
-            search_text: document.getElementById("search_field").value,
+            search_text: search_text_value,
             sort_result: document.getElementById("input_sort").checked,
             sort_desc: document.getElementById("input_desc").checked,
             button_date: global_date,
@@ -838,6 +876,7 @@
             metric_type: metric_type,
             state_type: state_type,
             list_name: "{{ list_name }}",
+            //total_sum_flag: "result",
         };
 
         fetch(url, {
@@ -851,7 +890,9 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
+                metricks_data = data.metricks_data;
                 data = data.data;
+
                 var table = $('#body_t');
 
                 var elmtTable = document.getElementById('body_t');
@@ -1784,6 +1825,77 @@
     });
 }
 
+
+    function getTotalSum(url_f) {
+    $('.loader').show();
+    //var url = "{{ url_for('get_total_sum') }}";
+    var params = {
+            start_date: prev_start_date, // Дата начала поиска
+            end_date: prev_end_date, // Дата окончания поиска
+            search_text: prev_search_text,
+            list_name: "{{ list_name }}",
+            //total_sum_flag: "result",
+        };
+
+    fetch(url_f, {
+        method: "POST",
+        headers: {
+            "Content-type": "application/json"
+        },
+        body: JSON.stringify(params)
+        // body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            metricks_data = data.metricks_data;
+            var totalRecords = data.total_records; // Получаем общее количество записей
+            document.querySelector('#head_t td:first-child').textContent = `url (${totalRecords})`; // Обновляем текст
+            
+            var table = $('#thead_t');
+
+            var elmtTable = document.getElementById('thead_t');
+            var rows = elmtTable.getElementsByTagName('tr');
+            var rowCount = rows.length;
+            for (var x = rowCount-1; x > 0; x--) {
+
+                elmtTable.removeChild(rows[x]);
+            }
+            
+            empty = `<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #B9BDBC;
+            text-align: center; display: flex; align-items: center; justify-content: center;'>
+        <span style='font-size: 18px'><span style='color:red'>NAN</span></span><br>
+        </div>`
+        zero = `<div style='height: 55px; width: 100px; margin: 0px; padding: 0px; background-color: #B9BDBC;
+            text-align: center; display: flex; align-items: center; justify-content: center;'>
+        <span style='font-size: 18px'><span style='color:red'>0.0</span></span><br>
+        </div>`
+            for (i = 0; i < 3; i++) {
+                var newRow = '<tr>';
+                $.each(columns, function (index_c, cell) {
+                    if (metricks_data[i][columns[index_c]["title"]]) {
+                        if (metricks_data[i][columns[index_c]["title"]] != "0") {
+                            newRow += '<td>' + metricks_data[i][columns[index_c]["title"]] + '</td>';
+                        }
+                        else
+                            newRow += '<td>' + zero + '</td>';
+                    } else {
+                        newRow += '<td>' + empty + '</td>';
+                    }
+                });
+                newRow += '</tr>';
+                table.append(newRow);
+            }
+            $('.loader').hide();
+        })
+        .catch(error => {
+            // Обработка ошибки
+            console.error('There was a problem with the fetch operation:', error);
+            document.getElementById('loader').style.display = 'none';
+            $('.loader').hide();
+        });
+    
+}
 function generateCsv(url_f) {
     $('.loader').show();
     const data = {

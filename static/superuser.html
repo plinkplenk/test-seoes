@@ -142,11 +142,232 @@
         color: #007bff;
     }
 </style>
+<style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .table-container {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            transition: margin-top 0.3s;
+        }
+        .row {
+            display: table-row;
+        }
+        .header {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .cell {
+            display: table-cell;
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .cell a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+        .cell a:hover {
+            text-decoration: underline;
+        }
+        button {
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .edit-btn {
+            background-color: orange;
+            color: white;
+            border-radius: 4px;
+        }
+        .edit-btn:hover {
+            background-color: darkorange;
+            transform: scale(1.05);
+        }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border-radius: 4px;
+        }
+        .delete-btn:hover {
+            background-color: darkred;
+            transform: scale(1.05);
+        }
+        .group-list-btn {
+            background-color: blue;
+            color: white;
+            border-radius: 4px;
+        }
+        .group-list-btn:hover {
+            background-color: darkblue;
+            transform: scale(1.05);
+        }
+        .add-btn {
+            background-color: green;
+            color: white;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .add-btn:hover {
+            background-color: darkgreen;
+            transform: scale(1.05);
+        }
+        #addConfigForm {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s, margin-bottom 0.3s;
+            margin: auto;
+        }
+        #addConfigForm.show {
+            display: block;
+            opacity: 1;
+        }
+        #addConfigForm input {
+            margin: 5px 0;
+            padding: 8px;
+            width: calc(100% - 16px);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #addConfigForm input:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        #addConfigForm button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #addConfigForm button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        /* Стили для модального окна */
+        #editConfigForm {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        #editConfigForm.show {
+            display: block;
+            opacity: 1;
+        }
+        #editConfigForm input, #editConfigForm select {
+            margin: 5px 0;
+            padding: 8px;
+            width: calc(100% - 16px);
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #editConfigForm input:focus, #editConfigForm select:focus {
+            border-color: #007BFF;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        #editConfigForm button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #editConfigForm button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        .close-btn {
+            display: block;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .close-btn:hover {
+            background-color: #c82333;
+        }
+        /* Модальное окно для отображения групп */
+        #groupListModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        #groupListModal.show {
+            display: block;
+            opacity: 1;
+        }
+        #groupTableContainer {
+            margin-top: 20px;
+        }
+        .btn-primary {
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
+
+    .btn-primary:active {
+        background-color: #004080;
+        transform: scale(0.98);
+    }
+    </style>
+
 <div class="container">
-    <div class="header">
-        <h1>{{ user.username }}</h1>
-    </div>
-    <div class="new-block">
+    <button class="add-btn" onclick="toggleAddConfigForm()" style="margin-top: 10px;">+ Add New Config</button>
+    <div class="new-block" id="addConfigForm">
         <h2>Add config</h2>
         <div class="form">
             <input type="text" id="name" placeholder="NAME">
@@ -157,11 +378,67 @@
             <button type="button" onclick="submitForm()">Add</button>
         </div>
     </div>
-    </div>
-    </div>
-    </div>
 </div>
+
+
+    <div class="table-container" id="tableContainer">
+        <div class="row header">
+            <div class="cell">#</div>
+            <div class="cell">Проект</div>
+            <div class="cell">Actions</div>
+        </div>
+
+        {% for config in all_configs %}
+
+        <div class="row">
+            <div class="cell">{{ loop.index }}</div> <!-- Порядковый номер -->
+            <div class="cell">{{ config.name }}</div>
+            <div class="cell">
+                <button class="edit-btn" onclick="showEditConfigForm({{ config.id }}, '{{ config.name }}', '{{ config.database_name }}', '{{ config.access_token }}', '{{ config.user_id }}', '{{ config.host_id }}')">Edit</button>
+               <button class="delete-btn" onclick="deleteConfig('{{ url_for('delete_config', config_id=config.id) }}')">Delete</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Форма для редактирования проекта -->
+    <div id="editConfigForm">
+        <h3>Edit Config</h3>
+        <form id="editConfigFormContent" onsubmit="return updateConfig()">
+            <input type="hidden" id="editConfigId" name="config_id">
+
+        <div class="form">
+            <div class="form-group">
+                <label for="editName">Name:</label>
+                <input type="text" id="editName" placeholder="NAME">
+            </div>
+            <div class="form-group">
+                <label for="editDatabaseName">Database Name:</label>
+                <input type="text" id="editDatabaseName" placeholder="DATABASE_NAME">
+            </div>
+            <div class="form-group">
+                <label for="editAccessToken">Access Token:</label>
+                <input type="text" id="editAccessToken" placeholder="ACCESS_TOKEN">
+            </div>
+            <div class="form-group">
+                <label for="editUserID">User Id:</label>
+                <input type="text" id="editUserID" placeholder="USER_ID">
+            </div>
+            <div class="form-group">
+                <label for="editHostID">Host Id:</label>
+                <input type="text" id="editHostID" placeholder="HOST_ID">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary btn-block" type="submit">Save</button>
+                <button class="close-btn" type="button" onclick="closeEditConfigForm()">Close</button>
+            </div>
+        </div>
+        </form>
+    </div>
+
+
 <div class="loader" style="display: none;"></div>
+
 <script>
     function DeleteConfigFromGroup(url) {
         $('.loader').show();
@@ -412,6 +689,96 @@
                     console.error('Error loading configs:', error);
                 });
         }, 100); // Задержка в 100 миллисекунд
+    }
+</script>
+
+<script>
+
+    function toggleAddConfigForm() {
+        const form = document.getElementById('addConfigForm');
+        const tableContainer = document.getElementById('tableContainer');
+        if (form.classList.contains('show')) {
+            form.classList.remove('show');
+            tableContainer.style.marginTop = '20px'; // Возвращаем отступ
+        } else {
+            form.classList.add('show');
+            tableContainer.style.marginTop = '180px'; // Увеличиваем отступ
+        }
+    }
+
+
+    function showEditConfigForm(configId, name, databaseName, accessToken, userID, hostID  ) {
+        document.getElementById('editConfigId').value = configId;
+        document.getElementById('editName').value = name;
+        document.getElementById('editDatabaseName').value = databaseName;
+        document.getElementById('editAccessToken').value = accessToken;
+        document.getElementById('editUserID').value = userID;
+        document.getElementById('editHostID').value = hostID;
+        document.getElementById('editConfigForm').classList.add('show');
+    }
+
+    function closeEditConfigForm() {
+        document.getElementById('editConfigForm').classList.remove('show');
+    }
+
+    function updateConfig() {
+        const configId = document.getElementById('editConfigId').value;
+        const name = document.getElementById('editName').value;
+        const databaseName = document.getElementById('editDatabaseName').value;
+        const accessToken = document.getElementById('editAccessToken').value;
+        const userID = document.getElementById('editUserID').value;
+        const hostID = document.getElementById('editHostID').value;
+
+        // Собираем данные для отправки
+        const data = {
+            name: name,
+            databaseName: databaseName,
+            accessToken: accessToken,
+            userID: userID,
+            hostID: hostID
+        };
+
+        const url = "{{ url_for('edit_config', id='config_id') }}".replace('config_id', configId);
+
+        // Отправляем данные на сервер через PUT запрос
+        fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 200) {
+                alert(data.message);  // Сообщение об успешном обновлении
+                location.reload();     // Перезагрузка страницы для обновления таблицы
+            } else {
+                alert('Failed to update config');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating config:', error);
+            alert('An error occurred while updating the config.');
+        });
+
+        return false;  // Предотвращаем отправку формы по умолчанию
+    }
+
+    function deleteConfig(url) {
+        if (confirm('Are you sure you want to delete this config?')) {
+            fetch(url, {
+                method: 'DELETE'
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.status === 200) {
+                      alert(data.message);
+                      location.reload(); // Перезагружаем страницу после удаления
+                  } else {
+                      alert('Failed to delete config');
+                  }
+              });
+        }
     }
 </script>
 {% endblock %}

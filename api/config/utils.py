@@ -4,7 +4,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from api.auth.models import User, GroupUserAssociation
-from api.config.models import Config, Group, GroupConfigAssociation, List, LiveSearchList, Role
+from api.config.models import Config, Group, GroupConfigAssociation, List, LiveSearchList, Role, UserQueryCount, \
+     ListLrSearchSystem, YandexLr
+from services.load_live_search import main as live_search_main
+
+async def load_list_live_search(user, list_id: int, session: AsyncSession):
+    live_search_list = await session.execute(select(LiveSearchList).where(LiveSearchList.id == list_id))
+    live_search_list: LiveSearchList = live_search_list.scalars().first() 
+    
+
+
+async def load_live_search(user, list_lr_id: int, session: AsyncSession):
+    list_lr = (await session.execute(select(ListLrSearchSystem).where(ListLrSearchSystem.id == list_lr_id))).scalars().first()
+
+    list_id, lr, search_system = list_lr.list_id, list_lr.lr, list_lr.search_system
+
+    main_domain = (await session.execute(select(LiveSearchList.main_domain).where(LiveSearchList.id == list_id))).scalars().first()
+
+    return await live_search_main(list_lr_id, list_id, main_domain, lr, search_system, user, session)
+
 
 
 async def get_config_names(session: AsyncSession, user: User, group_name):
@@ -77,11 +95,24 @@ async def get_live_search_lists_names(
 async def get_all_user(
     session: AsyncSession,
 ):
-    users = (await session.execute(select(User))).scalars().all()
+    users = (await session.execute(select(User,#.id,
+                                #User.email, 
+                                #User.username, 
+                                #User.role,
+                                #User.groups,
+                                UserQueryCount.query_count.label("query_count")
+                                ).join(UserQueryCount, UserQueryCount.user_id == User.id))
+                                ).all()
+    users_with_query_count = [
+        (user, query_count) for user, query_count in users
+    ]
 
-    users.sort(key=lambda x: x.id)
+    users_with_query_count.sort(key=lambda x: x[0].id)  # Сортируем по id пользователя
 
-    return users
+    return users_with_query_count
+
+    #users.sort(key=lambda x: x.id)
+    #return users
 
 
 async def get_all_groups(

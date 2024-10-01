@@ -1,4 +1,7 @@
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, ForeignKey
+import enum
+import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, String, Integer, ForeignKey, Uuid, Enum
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -96,6 +99,27 @@ class LiveSearchList(Base):
 
     # Связь с LiveSearchListQuery
     queries = relationship("LiveSearchListQuery", back_populates="live_search_list", cascade="all, delete-orphan")
+    auto_updates = relationship("LiveSearchAutoUpdateSchedule", back_populates="live_search_list")
+
+class AutoUpdatesMode(str, enum.Enum):
+    Disabled = "Disabled"
+    WeekDays = "WeekDays"
+    MonthDays = "MonthDays"
+
+
+class LiveSearchAutoUpdateSchedule(Base):
+    __tablename__ = "live_search_list_auto_update_schedule"
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    list_id = Column(Integer, ForeignKey("live_search_list.id"), nullable=False)
+    mode = Column(Enum(AutoUpdatesMode))
+    # if mode is not disabled then 
+    # store days in this format "1,2,3,...,31" for month days 
+    # or this "1,2,...,7" for week days
+    days = Column(String(100), nullable=True)
+    hours = Column(Integer, nullable=True)
+    minutes = Column(Integer, nullable=True)
+
+    live_search_list = relationship("LiveSearchList", back_populates="auto_updates", cascade="all,delete")
 
 
 class ListLrSearchSystem(Base):

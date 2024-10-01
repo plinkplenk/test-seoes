@@ -2,12 +2,13 @@ from datetime import datetime
 from email_validator import validate_email
 from email_validator.exceptions_types import EmailSyntaxError, EmailNotValidError
 from typing import Optional, Iterable
+from sqlalchemy.exc import IntegrityError
+from .exceptions import InvalidEmail
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions
 from requests import Response
-from sqlalchemy.exc import IntegrityError
 
 from api.auth.models import User
 from api.auth.schemas import UserCreate
@@ -18,9 +19,8 @@ from config import SECRET
 from fastapi import Request
 
 from db.session import async_session_general
-from const import query_value, date_format
 
-from .exceptions import InvalidEmail
+from const import query_value, date_format
 
 
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
@@ -82,6 +82,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
         if existing_user is not None:
             raise exceptions.UserAlreadyExists()
 
+        safe = False
         user_dict = (
             user_create.create_update_dict()
             if safe
@@ -129,7 +130,6 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
             user: User,
             request: Optional[Request] = None,
             ):
-        
         async with async_session_general() as session:
             session.add(UserQueryCount(
                 user_id=user.id,

@@ -1,7 +1,11 @@
+from contextlib import asynccontextmanager
+from datetime import datetime
+
 import uvicorn
 from starlette.middleware.sessions import SessionMiddleware
 
-import settings
+# import settings
+import config
 from fastapi import FastAPI, HTTPException
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
@@ -18,11 +22,24 @@ from api.config.router import router as config_router
 
 from api.auth.router import router as auth_router
 from config import SECRET
+from scheduler import CronTrigger, scheduler
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler.start()
+    scheduler.add_job(print_scheduler_jobs, trigger=CronTrigger(second="*/10", day_of_week="0,1,2,3"), id="scheduler jobs logger")
+    yield
+
+
+async def print_scheduler_jobs():
+    print(f"time = {datetime.now()} jobs = {scheduler.get_jobs()}")
 
 app = FastAPI(
     title="Metrics urls",
     redoc_url=None,
     docs_url="/docs",
+    lifespan=lifespan,
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -69,4 +86,4 @@ app.include_router(services_router, prefix="/services")
 app.include_router(config_router, prefix="/config")
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=settings.APP_PORT, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=int(config.APP_PORT), reload=True)

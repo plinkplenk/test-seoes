@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +10,6 @@
             margin: 0;
             padding: 20px;
         }
-
         .table-container {
             display: table;
             width: 100%;
@@ -19,72 +17,59 @@
             margin-top: 20px;
             transition: margin-top 0.3s;
         }
-
         .row {
             display: table-row;
         }
-
         .header {
             background-color: #f2f2f2;
             font-weight: bold;
         }
-
         .cell {
             display: table-cell;
             padding: 10px;
             border: 1px solid #ddd;
             text-align: center;
         }
-
         .cell a {
             color: #007BFF;
             text-decoration: none;
         }
-
         .cell a:hover {
             text-decoration: underline;
         }
-
         button {
             padding: 5px 10px;
             border: none;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s;
         }
-
         .edit-btn {
             background-color: orange;
             color: white;
             border-radius: 4px;
         }
-
         .edit-btn:hover {
             background-color: darkorange;
             transform: scale(1.05);
         }
-
         .delete-btn {
             background-color: red;
             color: white;
             border-radius: 4px;
         }
-
         .delete-btn:hover {
             background-color: darkred;
             transform: scale(1.05);
         }
-
         .group-list-btn {
             background-color: blue;
             color: white;
             border-radius: 4px;
         }
-
         .group-list-btn:hover {
             background-color: darkblue;
             transform: scale(1.05);
         }
-
         .add-btn {
             background-color: green;
             color: white;
@@ -94,12 +79,10 @@
             margin-bottom: 10px;
             transition: background-color 0.3s, transform 0.2s;
         }
-
         .add-btn:hover {
             background-color: darkgreen;
             transform: scale(1.05);
         }
-
         #addUserForm,
         #addListOfUsersForm,
         #addUsersFromExcelForm {
@@ -111,14 +94,12 @@
             opacity: 0;
             transition: opacity 0.3s, margin-bottom 0.3s;
         }
-
         #addUserForm.show,
         #addListOfUsersForm.show,
         #addUsersFromExcelForm.show {
             display: block;
             opacity: 1;
         }
-
         #addUserForm input,
         #addListOfUsersForm input,
         #addUsersFromExcelForm input {
@@ -130,14 +111,12 @@
             border-radius: 4px;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-
-        #addUserForm input:focus,
-        #addListOfUsers input::focus,
-        #addUsersFromExcelForm input::focus {
+        #addUserForm button,
+        #addListOfUsers button,
+        #addUsersFromExcelForm button {
             border-color: #007BFF;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
         }
-
         #addUserForm button,
         #addListOfUsers button,
         #addUsersFromExcelForm button {
@@ -149,14 +128,12 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s;
         }
-
         #addUserForm button:hover,
         #addListOfUsers button:hover,
         #addUsersFromExcelForm button:hover {
             background-color: #0056b3;
             transform: scale(1.05);
         }
-
         /* Стили для модального окна */
         #editUserForm {
             position: fixed;
@@ -173,13 +150,11 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
-
         #editUserForm.show {
             display: block;
             opacity: 1;
         }
-
-        #editUserForm input,
+        #editUserForm input, 
         #editUserForm select {
             margin: 5px 0;
             padding: 8px;
@@ -189,13 +164,11 @@
             border-radius: 4px;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-
-        #editUserForm input:focus,
+        #editUserForm input:focus, 
         #editUserForm select:focus {
             border-color: #007BFF;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
         }
-
         #editUserForm button {
             background-color: #007BFF;
             color: white;
@@ -205,12 +178,10 @@
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s;
         }
-
         #editUserForm button:hover {
             background-color: #0056b3;
             transform: scale(1.05);
         }
-
         .close-btn {
             display: block;
             margin-top: 10px;
@@ -222,11 +193,9 @@
             cursor: pointer;
             text-align: center;
         }
-
         .close-btn:hover {
             background-color: #c82333;
         }
-
         /* Модальное окно для отображения групп */
         #groupListModal {
             position: fixed;
@@ -243,48 +212,43 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
-
         #groupListModal.show {
             display: block;
             opacity: 1;
         }
-
         #groupTableContainer {
             margin-top: 20px;
         }
-
         .btn-primary {
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+    }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            transform: scale(1.05);
-        }
+    .btn-primary:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+    }
 
-        .btn-primary:active {
-            background-color: #004080;
-            transform: scale(0.98);
-        }
+    .btn-primary:active {
+        background-color: #004080;
+        transform: scale(0.98);
+    }
     </style>
 </head>
-
 <body>
 
     <h1>Users</h1>
-
+    
     <!-- Кнопка для добавления нового пользователя -->
     <button class="add-btn" onclick="toggleAddUserForm()">+ Add New User</button>
     <button class="add-btn btn-primary" onclick="toggleAddListOfUsersForm()">+ Add List of Users</button>
     <button class="add-btn" onclick="toggleAddUsersFromExcelForm()">+ Import Users From Excel</button>
-
-
+    
     <!-- Форма для добавления нового пользователя -->
     <div id="addUserForm">
         <h3>Add New User</h3>
@@ -293,19 +257,32 @@
                 <label for="addEmail">Email:</label>
                 <input class="form-control item" type="email" id="addEmail" name="email" maxlength="320" minlength="5"
                     pattern="^[a-zA-Z0-9_.\-]+@[a-zA-Z0-9_.\-]+\.[a-zA-Z]{2,}$" required>
-                <small id="emailError" class="form-text text-danger" style="display: none;">Invalid email
-                    format.</small>
+                    <small id="emailError" class="form-text text-danger" style="display: none;">Invalid email
+                        format.</small>
             </div>
             <div class="form-group">
                 <label for="addPassword">Password:</label>
                 <input class="form-control item" type="password" id="addPassword" name="password" required>
             </div>
             <div class="form-group">
+                <label for="addName">Name:</label>
+                <input class="form-control item" type="text" id="addName" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="addIsActive">Is active?:</label>
+                <input class="form-control item" type="checkbox" id="addIsActive" name="isactive" checked>
+            </div>
+            <div class="form-group">
+                <label for="addQueryCount">Query сount:</label>
+                <input class="form-control item" type="number" id="addQueryCount" name="QueryCount" checked>
+            </div>
+            <div class="form-group">
                 <button class="btn btn-primary btn-block create-account" type="submit">Submit</button>
             </div>
         </form>
     </div>
-
+    
+    
     <!-- Форма для добавления списка пользователей -->
     <div id="addListOfUsersForm">
         <h3>Add New Users</h3>
@@ -356,25 +333,31 @@
             <div class="cell">#</div>
             <div class="cell">Email</div>
             <div class="cell">Role</div>
+            <div class="cell">Name</div>
+            <div class="cell">Is active?</div>
+            <div class="cell">Query count</div>
             <div class="cell">Actions</div>
         </div>
-        {% for user in all_users %}
+        {% for user, query_count in all_users %}
         <div class="row">
             <div class="cell">{{ loop.index }}</div> <!-- Порядковый номер -->
             <div class="cell">{{ user.email }}</div>
             <div class="cell">{{ all_roles_dict[user.role] }}</div>
+            <div class="cell">{{ user.username }}</div>
+            <div class="cell">{{ user.is_active }}</div>
+            <div class="cell">{{ query_count }}</div>
             <div class="cell">
-                <button class="edit-btn"
-                    onclick="showEditUserForm({{ user.id }}, '{{ user.email }}', '{{ user.role }}')">Edit</button>
-                <button class="delete-btn"
+                <button class="edit-btn" 
+                    onclick="showEditUserForm({{ user.id }}, '{{ user.email }}', '{{ user.role }}', '{{ user.username }}', '{{ user.is_active }}', '{{ query_count}}')">Edit</button>
+                <button class="delete-btn" 
                     onclick="deleteUser('{{ url_for('delete_user', id=user.id) }}')">Delete</button>
-                <button class="group-list-btn" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}"
+                <button class="group-list-btn" data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" 
                     onclick="showGroupList(this)">Group List</button>
             </div>
         </div>
         {% endfor %}
     </div>
-
+    
     <!-- Форма для редактирования пользователя -->
     <div id="editUserForm">
         <h3>Edit User</h3>
@@ -398,12 +381,24 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="editUsername">Username:</label>
+                <input class="form-control item" type="text" id="editUsername" name="username">
+            </div>
+            <div class="form-group">
+                <label for="editIsActive">Is active?</label>
+                <input class="form-control item" type="checkbox" id="editIsActive" name="isactive">
+            </div>
+            <div class="form-group">
+                <label for="editQueryCount">Query count</label>
+                <input class="form-control item" type="number" id="editQueryCount" name="querycount">
+            </div>
+            <div class="form-group">
                 <button class="btn btn-primary btn-block" type="submit">Save</button>
                 <button class="close-btn" type="button" onclick="closeEditUserForm()">Close</button>
             </div>
         </form>
     </div>
-
+    
     <!-- Модальное окно для отображения групп -->
     <div id="groupListModal">
         <h3>User Group</h3>
@@ -426,9 +421,11 @@
             <button class="close-btn" type="button" onclick="closeGroupListModal()">Close</button>
         </form>
     </div>
-
+    
     <script>
-        function toggleAddListOfUsersForm() {
+
+
+function toggleAddListOfUsersForm() {
             const addUserForm = document.getElementById('addUserForm');
             const addListOfUsersFromExcelForm = document.getElementById('addUsersFromExcelForm');
             const form = document.getElementById('addListOfUsersForm');
@@ -443,6 +440,7 @@
             form.classList.add('show');
             tableContainer.style.marginTop = '180px'; // Увеличиваем отступ
         }
+
 
         function toggleAddUserForm() {
             const addListOfUsersForm = document.getElementById('addListOfUsersForm');
@@ -524,7 +522,9 @@
         function addUser() {
             const email = document.getElementById('addEmail').value;
             const password = document.getElementById('addPassword').value;
-
+            const name = document.getElementById('addName').value;
+            const is_active = document.getElementById('addIsActive').checked;
+            const query_count= document.getElementById('addQueryCount').value;
             // Проверяем email
             if (!checkEmail(email)) {
                 document.getElementById('emailError').style.display = 'block';
@@ -532,34 +532,56 @@
             }
 
             document.getElementById('emailError').style.display = 'none';
-
             const data = {
-                email: email,
-                password: password,
-                is_active: true,
-                is_superuser: false,
-                is_verified: false,
-                id: 0
+            email: email,
+            password: password,
+            username: name,
+            is_active: is_active,
+            is_superuser: false,
+            is_verified: false,
+            query_count: query_count,
+            id: 0
             };
 
             console.log(data)
+            
+            // Отправляем данные на сервер
             fetch('/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data),
-            }).then(response => response.json()).then(data => {
-                location.reload(); // Перезагружаем страницу после добавления
-            });
+            }).then(response => response.json())
+             
+            data = {
+                email: email,
+                password: password,
+                role: role,
+                username: username,
+                is_active: is_active,
+                query_count: query_count
+            };
+            const url = "{{ url_for('edit_user', id='user_id') }}".replace('user_id', userId);
 
-
+            // Отправляем данные на сервер через PUT запрос
+            fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+            })
             return false; // Предотвращаем отправку формы по умолчанию
         }
 
-        function showEditUserForm(userId, email, role) {
+        function showEditUserForm(userId, email, role, username, is_active, query_count) {
             document.getElementById('editUserId').value = userId;
             document.getElementById('editEmail').value = email;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editIsActive').checked = (is_active.toLowerCase() === 'true');
+            document.getElementById('editQueryCount').value = query_count;
             document.getElementById('editUserForm').classList.add('show');
         }
 
@@ -572,14 +594,18 @@
             const email = document.getElementById('editEmail').value;
             const password = document.getElementById('editPassword').value;
             const role = document.getElementById('editRole').value;
-
+            const username = document.getElementById('editUsername').value;
+            const is_active = document.getElementById('editIsActive').checked;
+            const query_count = document.getElementById('editQueryCount').value;
             // Собираем данные для отправки
             const data = {
                 email: email,
                 password: password,
-                role: role
+                role: role,
+                username: username,
+                is_active: is_active,
+                query_count: query_count
             };
-
             const url = "{{ url_for('edit_user', id='user_id') }}".replace('user_id', userId);
 
             // Отправляем данные на сервер через PUT запрос
@@ -590,19 +616,19 @@
                 },
                 body: JSON.stringify(data),
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 200) {
-                        alert(data.message);  // Сообщение об успешном обновлении
-                        location.reload();     // Перезагрузка страницы для обновления таблицы
-                    } else {
-                        alert('Failed to update user');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating user:', error);
-                    alert('An error occurred while updating the user.');
-                });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 200) {
+                    alert(data.message);  // Сообщение об успешном обновлении
+                    location.reload();     // Перезагрузка страницы для обновления таблицы
+                } else {
+                    alert('Failed to update user');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating user:', error);
+                alert('An error occurred while updating the user.');
+            });
 
             return false;  // Предотвращаем отправку формы по умолчанию
         }
@@ -612,14 +638,14 @@
                 fetch(url, {
                     method: 'DELETE'
                 }).then(response => response.json())
-                    .then(data => {
-                        if (data.status === 200) {
-                            alert(data.message);
-                            location.reload(); // Перезагружаем страницу после удаления
-                        } else {
-                            alert('Failed to delete user');
-                        }
-                    });
+                  .then(data => {
+                      if (data.status === 200) {
+                          alert(data.message);
+                          location.reload(); // Перезагружаем страницу после удаления
+                      } else {
+                          alert('Failed to delete user');
+                      }
+                  });
             }
         }
 
@@ -628,95 +654,95 @@
         let currentUserId = null; // Глобальная переменная для хранения текущего userId
 
         function showGroupList(buttonElement) {
-            // Получаем userId и email из data-атрибутов кнопки
-            currentUserId = buttonElement.getAttribute('data-user-id');
-            const userEmail = buttonElement.getAttribute('data-user-email'); // Получаем email
+        // Получаем userId и email из data-атрибутов кнопки
+        currentUserId = buttonElement.getAttribute('data-user-id');
+        const userEmail = buttonElement.getAttribute('data-user-email'); // Получаем email
 
-            const url = getGroupsUrl.replace('/0', `/${currentUserId}`);
+        const url = getGroupsUrl.replace('/0', `/${currentUserId}`);
 
-            fetch(url)
-                .then(response => response.json())
-                .then(groups => {
-                    const groupTableContainer = document.getElementById('groupTableContainer');
-                    const addGroupForm = document.getElementById('addGroupForm');
+        fetch(url)
+            .then(response => response.json())
+            .then(groups => {
+                const groupTableContainer = document.getElementById('groupTableContainer');
+                const addGroupForm = document.getElementById('addGroupForm');
 
-                    // Очищаем таблицу перед добавлением новых элементов
-                    groupTableContainer.innerHTML = '';
+                // Очищаем таблицу перед добавлением новых элементов
+                groupTableContainer.innerHTML = '';
 
-                    // Генерируем таблицу групп
-                    groups.forEach((group, index) => {
-                        const row = document.createElement('div');
-                        row.classList.add('row');
-
-                        row.innerHTML = `
+                // Генерируем таблицу групп
+                groups.forEach((group, index) => {
+                    const row = document.createElement('div');
+                    row.classList.add('row');
+                    
+                    row.innerHTML = `
                         <div class="cell">${index + 1}</div>
                         <div class="cell">${group.name}</div>
                         <div class="cell">
                             <button class="delete-btn" onclick="deleteGroup(${currentUserId}, ${group.id})">Delete</button>
                         </div>
                     `;
-
-                        groupTableContainer.appendChild(row);
-                    });
-
-                    // Обновляем заголовок модального окна
-                    const groupListModal = document.getElementById('groupListModal');
-                    groupListModal.querySelector('h3').textContent = `${userEmail}`;
-
-                    // Показываем модальное окно
-                    groupListModal.classList.add('show');
-
-                    // Показываем форму добавления группы
-                    addGroupForm.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error fetching groups:', error);
-                });
-        }
-
-        function addGroup(event) {
-            event.preventDefault(); // Предотвращаем отправку формы по умолчанию
-
-            const form = document.getElementById('addGroupForm');
-            const groupNameSelect = document.getElementById('groupName');
-            const selectedGroupId = groupNameSelect.value;
-
-            // Используем глобальную переменную для получения userId
-            const url = `{{ url_for('add_group_for_user', user_id='USER_ID', group_id=0) }}`.replace('USER_ID', currentUserId).replace(/\/\d+$/, `/${selectedGroupId}`);
-
-            // Отправляем POST запрос на сервер
-            fetch(url, {
-                method: 'POST',
-                body: new FormData(form),
-            }).then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    showGroupList({ getAttribute: () => currentUserId }); // Обновляем список после добавления
+                    
+                    groupTableContainer.appendChild(row);
                 });
 
-            return false; // Предотвращаем отправку формы по умолчанию
-        }
+                // Обновляем заголовок модального окна
+                const groupListModal = document.getElementById('groupListModal');
+                groupListModal.querySelector('h3').textContent = `${userEmail}`;
+
+                // Показываем модальное окно
+                groupListModal.classList.add('show');
+
+                // Показываем форму добавления группы
+                addGroupForm.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching groups:', error);
+            });
+    }
+
+    function addGroup(event) {
+        event.preventDefault(); // Предотвращаем отправку формы по умолчанию
+
+        const form = document.getElementById('addGroupForm');
+        const groupNameSelect = document.getElementById('groupName');
+        const selectedGroupId = groupNameSelect.value;
+
+        // Используем глобальную переменную для получения userId
+        const url = `{{ url_for('add_group_for_user', user_id='USER_ID', group_id=0) }}`.replace('USER_ID', currentUserId).replace(/\/\d+$/, `/${selectedGroupId}`);
+
+        // Отправляем POST запрос на сервер
+        fetch(url, {
+            method: 'POST',
+            body: new FormData(form),
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            showGroupList({ getAttribute: () => currentUserId }); // Обновляем список после добавления
+        });
+
+        return false; // Предотвращаем отправку формы по умолчанию
+    }
         const deleteGroupUrl = '{{ url_for('delete_group_for_user', user_id=0, group_id=0) }}';
 
         function deleteGroup(userId, groupId) {
 
-            if (confirm('Are you sure you want to delete this group?')) {
-                // Заменяем параметры в URL
-                const url = deleteGroupUrl.replace(/\/\d+\/\d+$/, `/${userId}/${groupId}`);
+        if (confirm('Are you sure you want to delete this group?')) {
+            // Заменяем параметры в URL
+            const url = deleteGroupUrl.replace(/\/\d+\/\d+$/, `/${userId}/${groupId}`);
 
-                fetch(url, {
-                    method: 'DELETE'
-                }).then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        showGroupList({ getAttribute: () => currentUserId }); // Обновляем список после добавления
-                    });
-            }
+            fetch(url, {
+                method: 'DELETE'
+            }).then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                showGroupList({ getAttribute: () => currentUserId }); // Обновляем список после добавления
+            });
         }
+    }
 
         function closeGroupListModal() {
             document.getElementById('groupListModal').classList.remove('show');
         }
     </script>
 
-    {% endblock %}
+{% endblock %}

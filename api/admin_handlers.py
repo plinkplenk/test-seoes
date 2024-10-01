@@ -1,22 +1,28 @@
 from io import BytesIO
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
 from fastapi import UploadFile, Request
 from fastapi import status
+from api.auth.exceptions import InvalidEmail
+from api.auth.manager import get_user_manager, UserManager
+from api.auth.schemas import UserCreate
+from utils import CommaNewLineSeparatedValues, import_users_from_excel
+from sqlalchemy.exc import IntegrityError
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from sqlalchemy import and_, delete, select
+from sqlalchemy import and_, column, delete, select, or_, update, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_config import current_user, RoleChecker
-from api.auth.exceptions import InvalidEmail
 from api.auth.models import User
-from api.auth.manager import get_user_manager, UserManager
-from api.config.models import Config, Group, List, ListLrSearchSystem, ListURI, LiveSearchList, LiveSearchListQuery, UserQueryCount, YandexLr
+from api.config.models import Config, Group, List, ListLrSearchSystem, ListURI, LiveSearchList, LiveSearchListQuery, UserQueryCount, YandexLr, Role, AutoUpdatesMode
 from api.config.utils import get_all_configs, get_all_groups, get_all_groups_for_user, get_all_roles, get_all_user, get_config_names, get_group_names, get_groups_names_dict, get_lists_names, get_live_search_lists_names
-from api.auth.schemas import UserCreate
+from api.schemas import AutoUpdatesScheduleRead, AutoUpdatesScheduleCreate
 from db.session import get_db_general
 
 from api.query_api.router import router as query_router
@@ -25,8 +31,8 @@ from api.history_api.router import router as history_router
 from api.merge_api.router import router as merge_router
 from api.live_search_api.router import router as live_search_router
 
-from utils import CommaNewLineSeparatedValues, import_users_from_excel
-
+import config
+from scheduler import scheduler, CronTrigger
 
 admin_router = APIRouter()
 
@@ -57,65 +63,6 @@ def pad_list_with_zeros(lst, amount):
     return lst
 
 
-@admin_router.post("/batch_register_excel")
-async def batch_register_excel(
-        request: Request,
-        file: UploadFile,
-        user_manager: AsyncSession = Depends(get_user_manager),
-        required: bool = Depends(RoleChecker({"Superuser"})),
-        status_code=status.HTTP_201_CREATED):
-    try:
-        file = await file.read()
-        await user_manager.batch_create(import_users_from_excel(BytesIO(file)))
-    except InvalidEmail as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
-    except IntegrityError as e:
-        info = e.orig.args[0]
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=info[info.rfind("DETAIL"):]) 
-
-    return JSONResponse({
-        "status": "success",
-        "detail": "Users created successfully",
-    }, status_code)
-
-
-@admin_router.post("/batch_register")
-async def batch_register(
-        request: Request,
-        user: User = Depends(current_user),
-        user_manager: UserManager = Depends(get_user_manager),
-        required: bool = Depends(RoleChecker(required_permissions={"Superuser"})),
-        status_code=status.HTTP_201_CREATED):
-    body_bytes = await request.body()
-    raw_users = body_bytes.decode("UTF-8")
-    reader = CommaNewLineSeparatedValues().reader(raw_users)
-    try:
-        await user_manager.batch_create(
-            map(lambda user_create: 
-                    UserCreate(
-                        id=-1, 
-                        email=user_create[0],
-                        # username is None when it's empty string
-                        username=user_create[1] or None,
-                        password=user_create[2]),
-                    reader)
-                )
-    except InvalidEmail as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
-    except IntegrityError as e:
-        info = e.orig.args[0]
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=info[info.rfind("DETAIL"):]) 
-
-    return JSONResponse({
-        "status": "success",
-        "detail": "Users created successfully",
-    }, status_code)
-
-
 @admin_router.get("/")
 async def login_page(request: Request, user: User = Depends(current_user)):
     return templates.TemplateResponse("login.html", {"request": request, "user": user})
@@ -130,7 +77,9 @@ async def register(request: Request, user: User = Depends(current_user)):
 async def show_profile(request: Request,
                        username: str,
                        user=Depends(current_user),
-                       session: AsyncSession = Depends(get_db_general)):
+                       session: AsyncSession = Depends(get_db_general),
+                       required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+                       ):
     group_name = request.session["group"].get("name", "")
     config_names = [elem[0] for elem in (await get_config_names(session, user, group_name))]
 
@@ -153,13 +102,16 @@ async def show_superuser(
     group_name = request.session["group"].get("name", "")
     config_names = [elem[0] for elem in (await get_config_names(session, user, group_name))]
 
+    all_configs = [elem for elem in (await get_all_configs(session))]
+
     group_names = await get_group_names(session, user)
 
     return templates.TemplateResponse("superuser.html",
                                       {"request": request,
                                        "user": user,
                                        "config_names": config_names,
-                                       "group_names": group_names})
+                                       "group_names": group_names,
+                                       "all_configs": all_configs,})
 
 
 @admin_router.get("/list/{username}")
@@ -417,7 +369,7 @@ async def show_live_search(
     request: Request,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     config_id = request.session["config"]["config_id"]
     group_id = request.session["group"]["group_id"]
@@ -442,7 +394,7 @@ async def add_live_search_list(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"Administrator", "Superuser", "Search"}))
 ):
 
     main_domain, list_name, query_list = data.values()
@@ -491,7 +443,7 @@ async def delete_live_search_list(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"Administrator", "Superuser", "Search"}))
 ):
     list_name = data["name"]
 
@@ -521,7 +473,7 @@ async def show_edit_live_search(
     list_id: int,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
 
     group_name = request.session["group"].get("name", "")
@@ -550,7 +502,7 @@ async def delete_live_search_record(
     query: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     query_model = (await session.execute(select(LiveSearchListQuery).where(and_(LiveSearchListQuery.query == query["query"], LiveSearchListQuery.list_id == list_id)))).scalars().first()
 
@@ -571,7 +523,7 @@ async def change_live_search_record(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     print(data)
 
@@ -596,7 +548,7 @@ async def add_live_search_record(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     record = LiveSearchListQuery(
         query=data["uri"].strip(),
@@ -619,7 +571,7 @@ async def show_list_menu(
     list_id: int,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     group_name = request.session["group"].get("name", "")
     config_names = [elem[0] for elem in (await get_config_names(session, user, group_name))]
@@ -632,7 +584,6 @@ async def show_list_menu(
 
     regions = (await session.execute(select(YandexLr))).scalars().all()
     region_dict = {region.Geoid: region.Geo for region in regions}
-
     return templates.TemplateResponse("live_search_list.html",
                                     {"request": request,
                                     "user": user,
@@ -652,7 +603,7 @@ async def add_lr_list(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     list_id, region_code, search_system = data.values()
     list_id, region_code = int(list_id), int(region_code)
@@ -677,7 +628,7 @@ async def delete_lr_list(
     data: dict,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     print(data)
     list_id, region_code, search_system = data.values()
@@ -697,18 +648,107 @@ async def delete_lr_list(
         "status": 200,
         "message": f"Delete association for {list_id}:\nlr={region_code}\nsearch_system={search_system}"
     }
+@admin_router.put("/reset_query_limits/")
+async def reset_query_limits(
+    #request: Request,
+    session: AsyncSession = Depends(get_db_general),
+    #user=Depends(current_user),
+    #required: bool = Depends(RoleChecker(required_permissions={"Superuser"}))                      
+):
+    query_limit = int(config.MONTHLY_REQUEST_LIMIT)
+    active_users = await session.execute(
+        select(User).join(Role).where(
+            User.is_active == True,
+            or_(Role.name == 'Search', Role.name == 'Superuser')
+        )
+    )
+    active_users_list = active_users.scalars().all()
 
+    for user in active_users_list:
+        user_query_count = await session.execute(
+            select(UserQueryCount).where(UserQueryCount.user_id == user.id)
+        )
+        user_query_count_record = user_query_count.scalars().first()
+        user_query_count_record.query_count = query_limit
 
-@admin_router.get("list_menu/regions")
+    await session.commit()
+    return {
+        "status": 200,
+        "message": f"Reset query limits successfully"
+    }
+
+@admin_router.get("/list_menu/regions")
 async def get_regions(
     request: Request,
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
-    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser"}))
+    required: bool = Depends(RoleChecker(required_permissions={"User", "Administrator", "Superuser", "Search"}))
 ):
     regions = (await session.execute(select(YandexLr))).scalars().all()
     region_dict = {region.Geo: region.Geoid for region in regions}
     return region_dict
+
+
+# TODO: MOVE IMPORTS ABOVE
+from api.config.models import LiveSearchAutoUpdateSchedule
+
+@admin_router.post("/list_menu/{list_id}/updates_schedule", status_code=status.HTTP_200_OK)
+async def schedule_updates(
+    request: Request,
+    list_id: int,
+    auto_update_schedule: AutoUpdatesScheduleCreate,
+    session: AsyncSession = Depends(get_db_general),
+    user: User = Depends(current_user),):
+    schedule = await session.execute(
+            select(LiveSearchAutoUpdateSchedule)
+            .where(LiveSearchAutoUpdateSchedule.list_id == list_id)
+        )
+    schedule = schedule.scalars().first()
+    values = dict(
+            list_id=list_id,
+            days=",".join(map(str, auto_update_schedule.days)) if auto_update_schedule.days is not None else None,
+            mode=auto_update_schedule.mode,
+            hours=auto_update_schedule.hours,
+            minutes=auto_update_schedule.minutes)
+    if schedule is not None:
+        list_updates_schedule = await session.execute(
+            update(LiveSearchAutoUpdateSchedule)
+            .where(LiveSearchAutoUpdateSchedule.id == schedule.id)
+            .values(**values).returning(
+                LiveSearchAutoUpdateSchedule 
+            )
+        )
+    else:
+        list_updates_schedule = await session.execute(
+            insert(LiveSearchAutoUpdateSchedule).values(**values).returning(LiveSearchAutoUpdateSchedule)
+        )
+    list_updates_schedule: LiveSearchAutoUpdateSchedule = list_updates_schedule.scalars().first()
+    schedule_id = str(list_updates_schedule.id)
+    if scheduler.get_job(schedule_id) is not None:
+        scheduler.remove_job(schedule_id)
+    if auto_update_schedule.mode == AutoUpdatesMode.Disabled:
+        await session.commit()
+        return
+    
+    scheduler.add_job(print, id=schedule_id, args=("task_scheduled",), trigger=CronTrigger(second="*/30"))
+    await session.commit()
+
+
+@admin_router.get("/list_menu/{list_id}/updates_schedule")
+async def schedule_updates(
+    request: Request,
+    list_id: int,
+    # auto_update_freq: AutoUpdatesScheduleRead,
+    session: AsyncSession = Depends(get_db_general),
+    user: User = Depends(current_user)) -> Optional[AutoUpdatesScheduleRead]:
+    schedule = await session.execute(
+        select(LiveSearchAutoUpdateSchedule).
+        where(LiveSearchAutoUpdateSchedule.list_id == list_id)
+        )
+    schedule = schedule.scalars().first()
+    return None if schedule is None else AutoUpdatesScheduleRead(
+        id=schedule.id, mode=schedule.mode, days=schedule.days.split(",") if schedule.days else None, hours=schedule.hours, minutes=schedule.minutes
+    )
 
 
 @admin_router.get("/user_menu")
@@ -717,12 +757,13 @@ async def show_user_menu(
     user=Depends(current_user),
     session: AsyncSession = Depends(get_db_general),
     required: bool = Depends(RoleChecker(required_permissions={"Superuser"}))
-):
+):    
     group_name = request.session["group"].get("name", "")
     config_names = [elem[0] for elem in (await get_config_names(session, user, group_name))]
     group_names = await get_group_names(session, user)
 
-    all_users = await get_all_user(session)
+    all_users = await get_all_user(session)   
+
 
     all_roles_dict = await get_all_roles(session)
 
@@ -798,5 +839,61 @@ async def show_group_menu(
                                     })
 
 
+@admin_router.post("/batch_register_excel")
+async def batch_register_excel(
+        request: Request,
+        file: UploadFile,
+        user_manager: AsyncSession = Depends(get_user_manager),
+        required: bool = Depends(RoleChecker({"Superuser"})),
+        status_code=status.HTTP_201_CREATED):
+    try:
+        file = await file.read()
+        await user_manager.batch_create(import_users_from_excel(BytesIO(file)))
+    except InvalidEmail as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
+    except IntegrityError as e:
+        info = e.orig.args[0]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=info[info.rfind("DETAIL"):]) 
 
+    return JSONResponse({
+        "status": "success",
+        "detail": "Users created successfully",
+    }, status_code)
+
+
+@admin_router.post("/batch_register")
+async def batch_register(
+        request: Request,
+        user: User = Depends(current_user),
+        user_manager: UserManager = Depends(get_user_manager),
+        required: bool = Depends(RoleChecker(required_permissions={"Superuser"})),
+        status_code=status.HTTP_201_CREATED):
+    body_bytes = await request.body()
+    raw_users = body_bytes.decode("UTF-8")
+    reader = CommaNewLineSeparatedValues().reader(raw_users)
+    try:
+        await user_manager.batch_create(
+            map(lambda user_create: 
+                    UserCreate(
+                        id=-1, 
+                        email=user_create[0],
+                        # username is None when it's empty string
+                        username=user_create[1] or None,
+                        password=user_create[2]),
+                    reader)
+                )
+    except InvalidEmail as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.detail) 
+    except IntegrityError as e:
+        info = e.orig.args[0]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=info[info.rfind("DETAIL"):]) 
+
+    return JSONResponse({
+        "status": "success",
+        "detail": "Users created successfully",
+    }, status_code)
 
