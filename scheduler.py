@@ -1,6 +1,6 @@
 import asyncio
 from time import sleep
-from pytz import utc
+from pytz import utc, all_timezones
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -14,4 +14,4 @@ jobstores = {
     "sqlalchemy": SQLAlchemyJobStore(url=_db_url)
 }
 
-scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=utc)
+scheduler = AsyncIOScheduler(jobstores=jobstores, timezone="Europe/Moscow")

@@ -6,12 +6,26 @@ from sqlalchemy.orm import aliased
 from api.auth.models import User, GroupUserAssociation
 from api.config.models import Config, Group, GroupConfigAssociation, List, LiveSearchList, Role, UserQueryCount, \
      ListLrSearchSystem, YandexLr
+from db.session import async_session_general
 from services.load_live_search import main as live_search_main
 
-async def load_list_live_search(user, list_id: int, session: AsyncSession):
-    live_search_list = await session.execute(select(LiveSearchList).where(LiveSearchList.id == list_id))
-    live_search_list: LiveSearchList = live_search_list.scalars().first() 
-    
+async def update_list(user: User, list_id: int):
+    print("UPDATING")
+    async with async_session_general() as session:
+        live_search_list: LiveSearchList = (
+            await session.execute(select(LiveSearchList).where(LiveSearchList.id == list_id))
+        ).scalars().first()
+        main_domain = live_search_list.main_domain
+        lists_lr: list[ListLrSearchSystem] = (await session.execute(
+            select(ListLrSearchSystem)
+            .where(ListLrSearchSystem.list_id == live_search_list.id)
+        )).scalars().all()
+
+        for list_lr in lists_lr:
+            lr, search_system = list_lr.lr, list_lr.search_system
+            status = await live_search_main(list_lr.id, list_id, main_domain, lr, search_system, user, session)
+            if status == 0:
+                return
 
 
 async def load_live_search(user, list_lr_id: int, session: AsyncSession):
@@ -22,7 +36,6 @@ async def load_live_search(user, list_lr_id: int, session: AsyncSession):
     main_domain = (await session.execute(select(LiveSearchList.main_domain).where(LiveSearchList.id == list_id))).scalars().first()
 
     return await live_search_main(list_lr_id, list_id, main_domain, lr, search_system, user, session)
-
 
 
 async def get_config_names(session: AsyncSession, user: User, group_name):

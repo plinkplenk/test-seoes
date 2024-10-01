@@ -644,7 +644,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if(!data) {
-                        console.log("no data");
                         this.updatesCheckbox.checked = false;
                         return
                     }

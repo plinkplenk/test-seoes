@@ -99,6 +99,7 @@ class LiveSearchList(Base):
 
     # Связь с LiveSearchListQuery
     queries = relationship("LiveSearchListQuery", back_populates="live_search_list", cascade="all, delete-orphan")
+    
     auto_updates = relationship("LiveSearchAutoUpdateSchedule", back_populates="live_search_list")
 
 class AutoUpdatesMode(str, enum.Enum):

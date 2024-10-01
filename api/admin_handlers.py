@@ -3,10 +3,6 @@ from typing import Optional
 
 from fastapi import UploadFile, Request
 from fastapi import status
-from api.auth.exceptions import InvalidEmail
-from api.auth.manager import get_user_manager, UserManager
-from api.auth.schemas import UserCreate
-from utils import CommaNewLineSeparatedValues, import_users_from_excel
 from sqlalchemy.exc import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,20 +15,26 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.auth_config import current_user, RoleChecker
+from api.auth.exceptions import InvalidEmail
+from api.auth.manager import get_user_manager, UserManager
 from api.auth.models import User
-from api.config.models import Config, Group, List, ListLrSearchSystem, ListURI, LiveSearchList, LiveSearchListQuery, UserQueryCount, YandexLr, Role, AutoUpdatesMode
-from api.config.utils import get_all_configs, get_all_groups, get_all_groups_for_user, get_all_roles, get_all_user, get_config_names, get_group_names, get_groups_names_dict, get_lists_names, get_live_search_lists_names
+from api.auth.schemas import UserCreate
+from api.config.models import Config, Group, List, ListLrSearchSystem, ListURI, LiveSearchList, LiveSearchListQuery \
+    , UserQueryCount, YandexLr, Role, AutoUpdatesMode
+from api.config.utils import get_all_configs, get_all_groups, get_all_groups_for_user, get_all_roles, get_all_user, \
+    get_config_names, get_group_names, get_groups_names_dict, get_lists_names, get_live_search_lists_names, update_list
 from api.schemas import AutoUpdatesScheduleRead, AutoUpdatesScheduleCreate
-from db.session import get_db_general
-
+from api.config.models import LiveSearchAutoUpdateSchedule
 from api.query_api.router import router as query_router
 from api.url_api.router import router as url_router
 from api.history_api.router import router as history_router
 from api.merge_api.router import router as merge_router
 from api.live_search_api.router import router as live_search_router
+from db.session import get_db_general
+from utils import CommaNewLineSeparatedValues, import_users_from_excel
+from scheduler import scheduler, CronTrigger
 
 import config
-from scheduler import scheduler, CronTrigger
 
 admin_router = APIRouter()
 
@@ -689,11 +691,9 @@ async def get_regions(
     return region_dict
 
 
-# TODO: MOVE IMPORTS ABOVE
-from api.config.models import LiveSearchAutoUpdateSchedule
 
 @admin_router.post("/list_menu/{list_id}/updates_schedule", status_code=status.HTTP_200_OK)
-async def schedule_updates(
+async def create_or_update_list_updates_schedule(
     request: Request,
     list_id: int,
     auto_update_schedule: AutoUpdatesScheduleCreate,
@@ -706,7 +706,12 @@ async def schedule_updates(
     schedule = schedule.scalars().first()
     values = dict(
             list_id=list_id,
-            days=",".join(map(str, auto_update_schedule.days)) if auto_update_schedule.days is not None else None,
+            days=",".join(
+                map(
+                    lambda day: str(day) if auto_update_schedule.mode == AutoUpdatesMode.MonthDays else str(day-1),
+                    auto_update_schedule.days,
+                )
+            ) if auto_update_schedule.days is not None else None,
             mode=auto_update_schedule.mode,
             hours=auto_update_schedule.hours,
             minutes=auto_update_schedule.minutes)
@@ -729,13 +734,18 @@ async def schedule_updates(
     if auto_update_schedule.mode == AutoUpdatesMode.Disabled:
         await session.commit()
         return
-    
-    scheduler.add_job(print, id=schedule_id, args=("task_scheduled",), trigger=CronTrigger(second="*/30"))
+    days = list_updates_schedule.days.split(",")
+    scheduler.add_job(update_list, id=schedule_id, args=(user, list_id), trigger=CronTrigger(
+        hour=list_updates_schedule.hours,
+        minute=list_updates_schedule.minutes,
+        day_of_week=list_updates_schedule.days if list_updates_schedule.mode == AutoUpdatesMode.WeekDays else None,
+        day=list_updates_schedule.days if list_updates_schedule.mode == AutoUpdatesMode.MonthDays else None,
+    ))
     await session.commit()
 
 
 @admin_router.get("/list_menu/{list_id}/updates_schedule")
-async def schedule_updates(
+async def get_list_updates_schedule(
     request: Request,
     list_id: int,
     # auto_update_freq: AutoUpdatesScheduleRead,
