@@ -6,7 +6,6 @@ logs/
 *.log
 *.ini
 *.bkp
-*.txt
 *.env
 *.pyc
 auto_alembic.py
